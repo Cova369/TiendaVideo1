@@ -88,7 +88,7 @@
         <form id="formEditar">
             <div class="campo"><label>Título:</label><input type="text" id="titulo" required></div>
             <div class="campo"><label>Descripción:</label><textarea id="descripcion" rows="3" required></textarea></div>
-            <div class="campo"><label>Precio (MX):</label><input type="number" id="precio" step="0.01" min="0" required></div>
+            <div class="campo"><label>Precio (USD):</label><input type="number" id="precio" step="0.01" min="0" required></div>
             <div class="campo"><label>Stock:</label><input type="number" id="stock" min="0" required></div>
             <div class="campo"><label>Plataforma principal:</label>
                 <select id="plataforma" required>
@@ -112,7 +112,7 @@
     </div>
 
     <script>
-        const API_URL = "https://tienda-video1-m99f.vercel.app/api/videojuegos";
+        const API_URL = "https://tienda-video1-ojcs.vercel.app/api/videojuegos";
         const urlParams = new URLSearchParams(window.location.search);
         const juegoId = urlParams.get("id");
 

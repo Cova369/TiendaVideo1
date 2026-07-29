@@ -88,7 +88,7 @@
         <form id="formJuego">
             <div class="campo"><label>Título del videojuego:</label><input type="text" id="titulo" required></div>
             <div class="campo"><label>Descripción corta:</label><textarea id="descripcion" rows="3" required></textarea></div>
-            <div class="campo"><label>Precio (MX):</label><input type="number" id="precio" step="0.01" min="0" required></div>
+            <div class="campo"><label>Precio (USD):</label><input type="number" id="precio" step="0.01" min="0" required></div>
             <div class="campo"><label>Unidades en Stock:</label><input type="number" id="stock" min="0" required></div>
             <div class="campo"><label>Plataforma principal:</label>
                 <select id="plataforma" required>
@@ -114,7 +114,7 @@
     </div>
 
     <script>
-        const API_URL = "https://tienda-video1-m99f.vercel.app/api/videojuegos";
+        const API_URL = "https://tienda-video1-ojcs.vercel.app/api/videojuegos";
 
         // --- Configuración de Cloudinary ---
         // El "cloud name" y el "upload preset" NO son secretos: viven en el
@@ -145,13 +145,14 @@
                 const respuesta = await fetch(CLOUDINARY_URL, {
                     method: "POST",
                     body: formData // Nota: NO se manda "Content-Type" a mano,
-                        // el navegador lo pone solo con el boundary correcto
+                                    // el navegador lo pone solo con el boundary correcto
                 });
                 const datos = await respuesta.json();
 
                 if (!respuesta.ok) {
                     throw new Error((datos.error && datos.error.message) || "Cloudinary rechazó la subida");
                 }
+
                 // secure_url es la URL final (https) de la imagen ya alojada
                 document.getElementById("imagenUrl").value = datos.secure_url;
                 preview.innerHTML = `<img src="${datos.secure_url}" alt="Vista previa" style="max-width:100%; border-radius:5px;">`;
