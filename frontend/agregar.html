@@ -114,7 +114,7 @@
     </div>
 
     <script>
-        const API_URL = "https://tienda-video1-ojcs.vercel.app/api/videojuegos";
+        const API_URL = "https://tienda-video1.vercel.app/api/videojuegos";
 
         // --- Configuración de Cloudinary ---
         // El "cloud name" y el "upload preset" NO son secretos: viven en el
@@ -145,7 +145,7 @@
                 const respuesta = await fetch(CLOUDINARY_URL, {
                     method: "POST",
                     body: formData // Nota: NO se manda "Content-Type" a mano,
-                                    // el navegador lo pone solo con el boundary correcto
+                        // el navegador lo pone solo con el boundary correcto
                 });
                 const datos = await respuesta.json();
 
