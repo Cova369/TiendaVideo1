@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>➕ Agregar Videojuego</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .form-container {
+            background: #202024;
+            padding: 30px;
+            border-radius: 8px;
+            width: 450px;
+            border: 1px solid #29292e;
+        }
+        
+        h2 {
+            color: #04d361;
+            margin-top: 0;
+        }
+        
+        .campo {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 5px;
+            color: #a8a8b3;
+        }
+        
+        input,
+        textarea,
+        select {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #121214;
+            color: #fff;
+            font-size: 15px;
+        }
+        
+        button {
+            background: #04d361;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #06b956;
+        }
+        
+        .btn-regresar {
+            background: #29292e;
+            color: #a8a8b3;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h2>➕ Registrar Videojuego</h2>
+        <form id="formJuego">
+            <div class="campo"><label>Título del videojuego:</label><input type="text" id="titulo" required></div>
+            <div class="campo"><label>Descripción corta:</label><textarea id="descripcion" rows="3" required></textarea></div>
+            <div class="campo"><label>Precio (USD):</label><input type="number" id="precio" step="0.01" min="0" required></div>
+            <div class="campo"><label>Unidades en Stock:</label><input type="number" id="stock" min="0" required></div>
+            <div class="campo"><label>Plataforma principal:</label>
+                <select id="plataforma" required>
+          <option value="PS5">PS5</option>
+          <option value="PC">PC</option>
+          <option value="Xbox Series">Xbox Series</option>
+          <option value="Nintendo Switch">Nintendo Switch</option>
+        </select>
+            </div>
+            <div class="campo">
+                <label>Imagen del videojuego:</label>
+                <input type="file" id="imagenArchivo" accept="image/*">
+                <div id="previewContainer" style="margin-top:10px;"></div>
+                <small id="estadoSubida" style="color:#a8a8b3;"></small>
+                <!-- Este input queda oculto: aquí se guarda la URL real que regresa Cloudinary,
+                     y es lo que se manda al backend tal cual como ya lo hacía antes -->
+                <input type="hidden" id="imagenUrl">
+            </div>
+            <div class="campo"><label>Empresa Desarrolladora:</label><input type="text" id="desarrollador" required></div>
+            <button type="submit">💾 Guardar en MongoDB Atlas</button>
+            <a href="index.html" class="btn-regresar">⬅️ Cancelar y volver</a>
+        </form>
+    </div>
+
+    <script>
+        const API_URL = "https://tienda-video1-m99f.vercel.app/api/videojuegos";
+
+        // --- Configuración de Cloudinary ---
+        // El "cloud name" y el "upload preset" NO son secretos: viven en el
+        // frontend a propósito, porque el preset está en modo "unsigned"
+        // (solo permite subir imágenes, no borrar ni administrar la cuenta).
+        const CLOUDINARY_CLOUD_NAME = "gjpz4zqf";
+        const CLOUDINARY_UPLOAD_PRESET = "VideojuegosUni";
+        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+        // Se dispara en cuanto el usuario elige un archivo en su computadora
+        document.getElementById("imagenArchivo").addEventListener("change", async(e) => {
+            const archivo = e.target.files[0];
+            if (!archivo) return;
+
+            const estado = document.getElementById("estadoSubida");
+            const preview = document.getElementById("previewContainer");
+            preview.innerHTML = "";
+            estado.style.color = "#a8a8b3";
+            estado.textContent = "⏳ Subiendo imagen a Cloudinary...";
+
+            // FormData es lo que Cloudinary espera para subidas "unsigned"
+            // desde el navegador: el archivo + el nombre del preset.
+            const formData = new FormData();
+            formData.append("file", archivo);
+            formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+            try {
+                const respuesta = await fetch(CLOUDINARY_URL, {
+                    method: "POST",
+                    body: formData // Nota: NO se manda "Content-Type" a mano,
+                                    // el navegador lo pone solo con el boundary correcto
+                });
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(datos.error?.message || "Cloudinary rechazó la subida");
+                }
+
+                // secure_url es la URL final (https) de la imagen ya alojada
+                document.getElementById("imagenUrl").value = datos.secure_url;
+                preview.innerHTML = `<img src="${datos.secure_url}" alt="Vista previa" style="max-width:100%; border-radius:5px;">`;
+                estado.style.color = "#04d361";
+                estado.textContent = "✅ Imagen lista para guardar";
+            } catch (error) {
+                estado.style.color = "#f75a68";
+                estado.textContent = "❌ Error al subir: " + error.message;
+            }
+        });
+
+        document.getElementById("formJuego").addEventListener("submit", async(e) => {
+            e.preventDefault(); // Evitamos que la página se refresque sola
+
+            // Como el input real es "hidden", el navegador no valida "required"
+            // por sí solo — lo revisamos nosotros antes de continuar.
+            if (!document.getElementById("imagenUrl").value) {
+                alert("⚠️ Primero selecciona y espera a que termine de subirse la imagen.");
+                return;
+            }
+
+            // Construimos el objeto JSON idéntico a lo que pide tu backend
+            const datosJuego = {
+                titulo: document.getElementById("titulo").value,
+                descripcion: document.getElementById("descripcion").value,
+                precio: parseFloat(document.getElementById("precio").value),
+                stock: parseInt(document.getElementById("stock").value),
+                plataformas: [document.getElementById("plataforma").value], // Lo mandamos como arreglo
+                imagenUrl: document.getElementById("imagenUrl").value,
+                desarrollador: document.getElementById("desarrollador").value
+            };
+
+            try {
+                const respuesta = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(datosJuego)
+                });
+
+                if (respuesta.ok) {
+                    alert("🎮 ¡Videojuego registrado con éxito!");
+                    window.location.href = "index.html"; // Redirección automática al catálogo
+                } else {
+                    alert("❌ Error al guardar datos en Atlas");
+                }
+            } catch (error) {
+                alert("❌ Error de red: " + error.message);
+            }
+        });
+    </script>
+</body>
+
+</html>

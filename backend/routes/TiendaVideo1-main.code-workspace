@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../../Documents/Tienda Videojuegos/backend/node_modules"
+		}
+	],
+	"settings": {}
+}

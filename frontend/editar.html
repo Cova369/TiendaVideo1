@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✏️ Editar Videojuego</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .form-container {
+            background: #202024;
+            padding: 30px;
+            border-radius: 8px;
+            width: 450px;
+            border: 1px solid #29292e;
+        }
+        
+        h2 {
+            color: #e1e1e6;
+            margin-top: 0;
+        }
+        
+        .campo {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 5px;
+            color: #a8a8b3;
+        }
+        
+        input,
+        textarea,
+        select {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #121214;
+            color: #fff;
+            font-size: 15px;
+        }
+        
+        button {
+            background: #e1e1e6;
+            color: #121214;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #fff;
+        }
+        
+        .btn-regresar {
+            background: #29292e;
+            color: #a8a8b3;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h2>✏️ Modificar Videojuego</h2>
+        <form id="formEditar">
+            <div class="campo"><label>Título:</label><input type="text" id="titulo" required></div>
+            <div class="campo"><label>Descripción:</label><textarea id="descripcion" rows="3" required></textarea></div>
+            <div class="campo"><label>Precio (USD):</label><input type="number" id="precio" step="0.01" min="0" required></div>
+            <div class="campo"><label>Stock:</label><input type="number" id="stock" min="0" required></div>
+            <div class="campo"><label>Plataforma principal:</label>
+                <select id="plataforma" required>
+          <option value="PS5">PS5</option>
+          <option value="PC">PC</option>
+          <option value="Xbox Series">Xbox Series</option>
+          <option value="Nintendo Switch">Nintendo Switch</option>
+        </select>
+            </div>
+            <div class="campo">
+                <label>Imagen del videojuego:</label>
+                <input type="file" id="imagenArchivo" accept="image/*">
+                <div id="previewContainer" style="margin-top:10px;"></div>
+                <small id="estadoSubida" style="color:#a8a8b3;"></small>
+                <input type="hidden" id="imagenUrl">
+            </div>
+            <div class="campo"><label>Desarrollador:</label><input type="text" id="desarrollador" required></div>
+            <button type="submit">🔄 Actualizar Registro</button>
+            <a href="index.html" class="btn-regresar">Cancelar</a>
+        </form>
+    </div>
+
+    <script>
+        const API_URL = "https://tienda-video1-m99f.vercel.app/api/videojuegos";
+        const urlParams = new URLSearchParams(window.location.search);
+        const juegoId = urlParams.get("id");
+
+        // --- Configuración de Cloudinary (unsigned upload) ---
+        const CLOUDINARY_CLOUD_NAME = "gjpz4zqf";
+        const CLOUDINARY_UPLOAD_PRESET = "VideojuegosUni";
+        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+        // Se dispara solo si el usuario decide reemplazar la imagen actual
+        document.getElementById("imagenArchivo").addEventListener("change", async(e) => {
+            const archivo = e.target.files[0];
+            if (!archivo) return;
+
+            const estado = document.getElementById("estadoSubida");
+            const preview = document.getElementById("previewContainer");
+            preview.innerHTML = "";
+            estado.style.color = "#a8a8b3";
+            estado.textContent = "⏳ Subiendo imagen a Cloudinary...";
+
+            const formData = new FormData();
+            formData.append("file", archivo);
+            formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+            try {
+                const respuesta = await fetch(CLOUDINARY_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(datos.error?.message || "Cloudinary rechazó la subida");
+                }
+
+                document.getElementById("imagenUrl").value = datos.secure_url;
+                preview.innerHTML = `<img src="${datos.secure_url}" alt="Vista previa" style="max-width:100%; border-radius:5px;">`;
+                estado.style.color = "#04d361";
+                estado.textContent = "✅ Nueva imagen lista para guardar";
+            } catch (error) {
+                estado.style.color = "#f75a68";
+                estado.textContent = "❌ Error al subir: " + error.message;
+            }
+        });
+
+        // Función para auto-llenar el formulario con los datos viejos al abrir la página
+        async function precargarDatos() {
+            try {
+                const respuesta = await fetch(`${API_URL}/${juegoId}`);
+                const juego = await respuesta.json();
+
+                document.getElementById("titulo").value = juego.titulo;
+                document.getElementById("descripcion").value = juego.descripcion;
+                document.getElementById("precio").value = juego.precio;
+                document.getElementById("stock").value = juego.stock;
+                document.getElementById("plataforma").value = juego.plataformas[0];
+                document.getElementById("imagenUrl").value = juego.imagenUrl;
+                // Mostramos la imagen que ya tenía guardada, para que el usuario
+                // vea cuál es antes de decidir si sube una nueva
+                document.getElementById("previewContainer").innerHTML =
+                    `<img src="${juego.imagenUrl}" alt="Imagen actual" style="max-width:100%; border-radius:5px;">`;
+                document.getElementById("desarrollador").value = juego.desarrollador;
+            } catch (error) {
+                alert("Error al cargar la información del juego.");
+            }
+        }
+
+        document.getElementById("formEditar").addEventListener("submit", async(e) => {
+            e.preventDefault();
+
+            if (!document.getElementById("imagenUrl").value) {
+                alert("⚠️ Falta la imagen: espera a que termine de subirse o conserva la actual.");
+                return;
+            }
+
+            // Asegúrate de que las propiedades de este objeto se llamen EXACTAMENTE así:
+            const datosActualizados = {
+                titulo: document.getElementById("titulo").value,
+                descripcion: document.getElementById("descripcion").value,
+                precio: parseFloat(document.getElementById("precio").value),
+                stock: parseInt(document.getElementById("stock").value),
+                plataformas: [document.getElementById("plataforma").value], // Debe ir en un arreglo con corchetes
+                imagenUrl: document.getElementById("imagenUrl").value,
+                desarrollador: document.getElementById("desarrollador").value
+
+            };
+
+
+
+            try {
+                const respuesta = await fetch(`${API_URL}/${juegoId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(datosActualizados)
+                });
+
+                if (respuesta.ok) {
+                    alert("🔄 ¡Registro actualizado correctamente en Atlas!");
+                    window.location.href = `detalle.html?id=${juegoId}`; // Te regresa a ver el detalle actualizado
+                }
+            } catch (error) {
+                alert("Error al conectar: " + error.message);
+            }
+        });
+
+        window.onload = precargarDatos;
+    </script>
+</body>
+
+</html>

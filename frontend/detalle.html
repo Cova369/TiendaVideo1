@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👁️ Detalle del Videojuego</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .detalle-card {
+            background: #202024;
+            padding: 30px;
+            border-radius: 8px;
+            width: 600px;
+            border: 1px solid #29292e;
+            display: flex;
+            gap: 25px;
+        }
+        
+        .col-izq {
+            width: 40%;
+        }
+        
+        .col-der {
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        img {
+            width: 100%;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+        
+        .precio {
+            font-size: 24px;
+            color: #04d361;
+            font-weight: bold;
+            margin: 15px 0 5px 0;
+        }
+        
+        .meta {
+            color: #a8a8b3;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .acciones {
+            margin-top: auto;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .btn-editar {
+            background: #e1e1e6;
+            color: #121214;
+        }
+        
+        .btn-eliminar {
+            background: #f75a68;
+            color: #fff;
+        }
+        
+        .btn-volver {
+            background: #29292e;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="contenedorDetalle">Cargando detalles del juego...</div>
+
+    <script>
+        const API_URL = "https://tienda-video1-m99f.vercel.app/api/videojuegos";
+
+        // Función nativa de JS para extraer parámetros de la barra de direcciones (?id=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const juegoId = urlParams.get("id");
+
+        async function cargarDetalle() {
+            try {
+                const respuesta = await fetch(`${API_URL}/${juegoId}`);
+                const juego = await respuesta.json();
+
+                document.getElementById("contenedorDetalle").innerHTML = `
+          <div class="detalle-card">
+            <div class="col-izq">
+              <img src="${juego.imagenUrl}" alt="${juego.titulo}">
+              <a href="index.html" class="btn-volver">⬅️ Volver</a>
+            </div>
+            <div class="col-der">
+              <h2>${juego.titulo}</h2>
+              <p class="meta"><strong>Desarrollador:</strong> ${juego.desarrollador}</p>
+              <p class="meta"><strong>Plataformas:</strong> ${juego.plataformas.join(', ')}</p>
+              <p class="meta"><strong>Disponibles:</strong> ${juego.stock} unidades</p>
+              <p>${juego.descripcion}</p>
+              <div class="precio">$${juego.precio}</div>
+              <div class="acciones">
+                <button class="btn-editar" onclick="window.location.href='editar.html?id=${juego._id}'">✏️ Editar</button>
+                <button class="btn-eliminar" onclick="eliminarJuego()">🗑️ Eliminar</button>
+              </div>
+            </div>
+          </div>
+        `;
+            } catch (error) {
+                document.getElementById("contenedorDetalle").innerHTML = "<p>Error al cargar el documento.</p>";
+            }
+        }
+
+        async function eliminarJuego() {
+            if (!confirm("⚠️ ¿Estás completamente seguro de borrar este videojuego del inventario NoSQL?")) return;
+
+            try {
+                const respuesta = await fetch(`${API_URL}/${juegoId}`, {
+                    method: "DELETE"
+                });
+                if (respuesta.ok) {
+                    alert("🗑️ Videojuego borrado correctamente.");
+                    window.location.href = "index.html";
+                }
+            } catch (error) {
+                alert("Error al intentar eliminar.");
+            }
+        }
+
+        window.onload = cargarDetalle;
+    </script>
+</body>
+
+</html>

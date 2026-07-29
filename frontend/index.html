@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 GameStore - Catálogo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+        }
+        
+        h1 {
+            color: #8257e5;
+        }
+        
+        .filtros {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        input,
+        select,
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+        }
+        
+        input {
+            width: 300px;
+            background: #202024;
+            color: #fff;
+        }
+        
+        button {
+            background: #8257e5;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #9466ff;
+        }
+        
+        .grid-juegos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .tarjeta-juego {
+            background: #202024;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #29292e;
+            text-align: center;
+        }
+        
+        .tarjeta-juego img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        
+        .precio {
+            font-size: 20px;
+            color: #04d361;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .plataforma {
+            background: #29292e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎮 Catálogo de Videojuegos</h1>
+
+    <!-- Formulario de Filtros y Búsqueda exigido por la Rúbrica -->
+    <div class="filtros">
+        <input type="text" id="inputBuscar" placeholder="Buscar por título...">
+        <select id="selectPlataforma">
+      <option value="">Todas las plataformas</option>
+      <option value="PS5">PS5</option>
+      <option value="PC">PC</option>
+      <option value="Xbox Series">Xbox Series</option>
+      <option value="Nintendo Switch">Nintendo Switch</option>
+    </select>
+        <button onclick="cargarVideojuegos()">🔍 Filtrar</button>
+        <button onclick="window.location.href='agregar.html'" style="background: #04d361; margin-left: auto;">➕ Agregar Juego</button>
+    </div>
+
+    <!-- Contenedor dinámico donde se renderizarán los datos NoSQL -->
+    <div class="grid-juegos" id="contenedorJuegos">
+        <p>Cargando catálogo desde internet...</p>
+    </div>
+
+    <script>
+        // URL PÚBLICA DE TU BACKEND EN VERCEL
+        const API_URL = "https://tienda-video1-m99f.vercel.app/api/videojuegos";
+
+        async function cargarVideojuegos() {
+            const contenedor = document.getElementById("contenedorJuegos");
+
+            // Capturamos los valores de los filtros para mandarlos en la Query String
+            const buscar = document.getElementById("inputBuscar").value;
+            const plataforma = document.getElementById("selectPlataforma").value;
+
+            try {
+                // Construimos la URL dinámica con los parámetros de búsqueda
+                let url = `${API_URL}?buscar=${buscar}&plataforma=${plataforma}`;
+
+                const respuesta = await fetch(url);
+                const juegos = await respuesta.json();
+
+                contenedor.innerHTML = ""; // Limpiamos el texto de carga
+
+                if (juegos.length === 0) {
+                    contenedor.innerHTML = "<p>No se encontraron videojuegos en el catálogo.</p>";
+                    return;
+                }
+
+                // Iteramos los documentos traídos desde MongoDB Atlas y creamos las tarjetas HTML
+                juegos.forEach(juego => {
+                    contenedor.innerHTML += `
+            <div class="tarjeta-juego">
+              <img src="${juego.imagenUrl}" alt="${juego.titulo}">
+              <h3>${juego.titulo}</h3>
+              <p class="precio">$${juego.precio}</p>
+              <span class="plataforma">${juego.plataformas.join(', ')}</span>
+              <br><br>
+              <button onclick="window.location.href='detalle.html?id=${juego._id}'">👁️ Ver Detalle</button>
+            </div>
+          `;
+                });
+
+            } catch (error) {
+                contenedor.innerHTML = `<p style="color: #f75a68;">❌ Error al conectar con el servidor: ${error.message}</p>`;
+            }
+        }
+
+        // Ejecuta la consulta de forma automática al abrir la página por primera vez
+        window.onload = cargarVideojuegos;
+    </script>
+</body>
+
+</html>
