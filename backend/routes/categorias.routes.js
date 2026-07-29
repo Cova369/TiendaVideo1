@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Categoria = require("../models/Categoria");
+const { verificarToken, verificarRol } = require("../middlewares/auth");
 
 
 //get lista todas las categorias 
@@ -16,8 +17,8 @@ router.get("/", async(req, res, next, ) => {
     }
 });
 
-//post creacion de documento
-router.post("/", async(req, res, next) => {
+//post creacion de documento — SOLO el administrador puede crear categorías
+router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { nombre, descripcion } = req.body;
         if (!nombre || !descripcion) {
@@ -32,8 +33,8 @@ router.post("/", async(req, res, next) => {
     }
 })
 
-//put actualizacion de documento 
-router.put("/:id", async(req, res, next) => {
+//put actualizacion de documento — SOLO admin
+router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { nombre, descripcion } = req.body;
 
@@ -54,8 +55,8 @@ router.put("/:id", async(req, res, next) => {
 
 });
 
-//delete eliminacion de un documento 
-router.delete("/:id", async(req, res, next) => {
+//delete eliminacion de un documento — SOLO admin
+router.delete("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const categoriaElim = await Categoria.findByIdAndDelete(req.params.id);
         if (!categoriaElim) {
