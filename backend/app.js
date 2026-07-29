@@ -53,3 +53,4 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 module.exports = app;
+// Versión limpia estable sin login
