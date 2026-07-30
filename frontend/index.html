@@ -84,6 +84,25 @@
             font-size: 12px;
         }
 
+        .paginacion {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .paginacion button {
+            width: auto;
+            padding: 8px 16px;
+        }
+
+        .paginacion button:disabled {
+            background: #29292e;
+            color: #666;
+            cursor: not-allowed;
+        }
+
         .nav-principal {
             display: flex;
             align-items: center;
@@ -130,7 +149,13 @@
         <select id="selectCategoria">
             <option value="">Todas las categorías</option>
         </select>
-        <button onclick="cargarVideojuegos()">🔍 Filtrar</button>
+        <select id="selectOrdenar">
+            <option value="reciente">Más recientes</option>
+            <option value="precio_asc">Precio: menor a mayor</option>
+            <option value="precio_desc">Precio: mayor a menor</option>
+            <option value="titulo_asc">Título A-Z</option>
+        </select>
+        <button onclick="cargarVideojuegos(1)">🔍 Filtrar</button>
         <button onclick="window.location.href='agregar.html'" style="background: #04d361; margin-left: auto;">➕ Agregar Juego</button>
     </div>
 
@@ -138,6 +163,8 @@
     <div class="grid-juegos" id="contenedorJuegos">
         <p>Cargando catálogo desde internet...</p>
     </div>
+
+    <div class="paginacion" id="paginacion"></div>
 
     <script src="js/sesion.js"></script>
     <script>
@@ -161,25 +188,32 @@
             }
         }
 
-        async function cargarVideojuegos() {
+        let paginaActual = 1;
+
+        async function cargarVideojuegos(pagina) {
             const contenedor = document.getElementById("contenedorJuegos");
+            const contenedorPaginacion = document.getElementById("paginacion");
+            paginaActual = pagina || paginaActual;
 
             // Capturamos los valores de los filtros para mandarlos en la Query String
             const buscar = document.getElementById("inputBuscar").value;
             const plataforma = document.getElementById("selectPlataforma").value;
             const categoria = document.getElementById("selectCategoria").value;
+            const ordenar = document.getElementById("selectOrdenar").value;
 
             try {
                 // Construimos la URL dinámica con los parámetros de búsqueda
-                let url = `${API_URL}?buscar=${buscar}&plataforma=${plataforma}&categoria=${categoria}`;
+                let url = `${API_URL}?buscar=${buscar}&plataforma=${plataforma}&categoria=${categoria}&ordenar=${ordenar}&pagina=${paginaActual}`;
 
                 const respuesta = await fetch(url);
-                const juegos = await respuesta.json();
+                const datos = await respuesta.json();
+                const juegos = datos.resultados || [];
 
                 contenedor.innerHTML = ""; // Limpiamos el texto de carga
 
                 if (juegos.length === 0) {
                     contenedor.innerHTML = "<p>No se encontraron videojuegos en el catálogo.</p>";
+                    contenedorPaginacion.innerHTML = "";
                     return;
                 }
 
@@ -198,6 +232,17 @@
           `;
                 });
 
+                // Controles de paginación (solo si hay más de una página)
+                if (datos.totalPaginas > 1) {
+                    contenedorPaginacion.innerHTML = `
+            <button ${datos.pagina <= 1 ? "disabled" : ""} onclick="cargarVideojuegos(${datos.pagina - 1})">⬅️ Anterior</button>
+            <span>Página ${datos.pagina} de ${datos.totalPaginas} · ${datos.total} juegos</span>
+            <button ${datos.pagina >= datos.totalPaginas ? "disabled" : ""} onclick="cargarVideojuegos(${datos.pagina + 1})">Siguiente ➡️</button>
+          `;
+                } else {
+                    contenedorPaginacion.innerHTML = "";
+                }
+
             } catch (error) {
                 contenedor.innerHTML = `<p style="color: #f75a68;">❌ Error al conectar con el servidor: ${error.message}</p>`;
             }
@@ -207,7 +252,7 @@
         window.onload = () => {
             renderNav("index.html");
             cargarCategorias();
-            cargarVideojuegos();
+            cargarVideojuegos(1);
         };
     </script>
 </body>

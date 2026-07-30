@@ -233,7 +233,7 @@
                 document.getElementById("previewContainer").innerHTML =
                     `<img src="${juego.imagenUrl}" alt="Imagen actual" style="max-width:100%; border-radius:5px;">`;
                 document.getElementById("desarrollador").value = juego.desarrollador;
-                await cargarCategorias(juego.categoria && juego.categoria.id);
+                await cargarCategorias(juego.categoria && juego.categoria.id && (juego.categoria.id._id || juego.categoria.id));
             } catch (error) {
                 alert("Error al cargar la información del juego.");
             }
