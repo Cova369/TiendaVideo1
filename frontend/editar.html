@@ -138,6 +138,11 @@
                 <input type="hidden" id="imagenUrl">
             </div>
             <div class="campo"><label>Desarrollador:</label><input type="text" id="desarrollador" required></div>
+            <div class="campo"><label>Categoría:</label>
+                <select id="categoria">
+                    <option value="">Sin categoría</option>
+                </select>
+            </div>
             <button type="submit">🔄 Actualizar Registro</button>
             <a href="index.html" class="btn-regresar">Cancelar</a>
         </form>
@@ -190,6 +195,27 @@
             }
         });
 
+        // Carga las categorías reales desde la BD y llena el <select>
+        async function cargarCategorias(categoriaActualId) {
+            try {
+                const respuesta = await fetch("https://tienda-video1.vercel.app/api/categorias");
+                const categorias = await respuesta.json();
+                const select = document.getElementById("categoria");
+                categorias.forEach(cat => {
+                    const opcion = document.createElement("option");
+                    opcion.value = cat._id;
+                    opcion.textContent = cat.nombre;
+                    opcion.dataset.nombre = cat.nombre;
+                    select.appendChild(opcion);
+                });
+                if (categoriaActualId) {
+                    select.value = categoriaActualId;
+                }
+            } catch (error) {
+                console.error("No se pudieron cargar las categorías:", error.message);
+            }
+        }
+
         // Función para auto-llenar el formulario con los datos viejos al abrir la página
         async function precargarDatos() {
             try {
@@ -207,6 +233,7 @@
                 document.getElementById("previewContainer").innerHTML =
                     `<img src="${juego.imagenUrl}" alt="Imagen actual" style="max-width:100%; border-radius:5px;">`;
                 document.getElementById("desarrollador").value = juego.desarrollador;
+                await cargarCategorias(juego.categoria && juego.categoria.id);
             } catch (error) {
                 alert("Error al cargar la información del juego.");
             }
@@ -221,6 +248,8 @@
             }
 
             // Asegúrate de que las propiedades de este objeto se llamen EXACTAMENTE así:
+            const selectCategoria = document.getElementById("categoria");
+            const opcionCategoria = selectCategoria.options[selectCategoria.selectedIndex];
             const datosActualizados = {
                 titulo: document.getElementById("titulo").value,
                 descripcion: document.getElementById("descripcion").value,
@@ -228,7 +257,8 @@
                 stock: parseInt(document.getElementById("stock").value),
                 plataformas: [document.getElementById("plataforma").value], // Debe ir en un arreglo con corchetes
                 imagenUrl: document.getElementById("imagenUrl").value,
-                desarrollador: document.getElementById("desarrollador").value
+                desarrollador: document.getElementById("desarrollador").value,
+                categoria: selectCategoria.value ? { id: selectCategoria.value, nombre: opcionCategoria.dataset.nombre } : undefined
 
             };
 

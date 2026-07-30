@@ -3,19 +3,22 @@ const router = express.Router();
 const Videojuego = require("../models/Videojuego");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
 
-//GET con busqueda dinamica por plataforma 
+//GET con busqueda dinamica por plataforma y categoria
 router.get("/", async(req, res, next) => {
     try {
-        const { buscar, plataforma } = req.query;
+        const { buscar, plataforma, categoria } = req.query;
         let query = {};
         if (buscar) {
-            query.titulo = { $regex: buscar, $option: "i" };
+            query.titulo = { $regex: buscar, $options: "i" };
         }
         if (plataforma) {
             query.plataformas = plataforma;
         }
-        const viedojuegos = await Videojuego.find(query);
-        res.json(viedojuegos);
+        if (categoria) {
+            query["categoria.id"] = categoria;
+        }
+        const videojuegos = await Videojuego.find(query);
+        res.json(videojuegos);
 
 
     } catch (error) {

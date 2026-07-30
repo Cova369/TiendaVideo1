@@ -225,6 +225,7 @@
               <h2>${juego.titulo}</h2>
               <p class="meta"><strong>Desarrollador:</strong> ${juego.desarrollador}</p>
               <p class="meta"><strong>Plataformas:</strong> ${juego.plataformas.join(', ')}</p>
+              ${juego.categoria && juego.categoria.nombre ? `<p class="meta"><strong>Categoría:</strong> ${juego.categoria.nombre}</p>` : ""}
               <p class="meta"><strong>Disponibles:</strong> ${juego.stock} unidades</p>
               <p>${juego.descripcion}</p>
               <div class="precio">$${juego.precio}</div>

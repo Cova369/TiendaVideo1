@@ -127,6 +127,9 @@
       <option value="Xbox Series">Xbox Series</option>
       <option value="Nintendo Switch">Nintendo Switch</option>
     </select>
+        <select id="selectCategoria">
+            <option value="">Todas las categorías</option>
+        </select>
         <button onclick="cargarVideojuegos()">🔍 Filtrar</button>
         <button onclick="window.location.href='agregar.html'" style="background: #04d361; margin-left: auto;">➕ Agregar Juego</button>
     </div>
@@ -141,16 +144,34 @@
         // URL PÚBLICA DE TU BACKEND EN VERCEL
         const API_URL = "https://tienda-video1.vercel.app/api/videojuegos";
 
+        // Llena el <select> de categorías con las que existan de verdad en la BD
+        async function cargarCategorias() {
+            try {
+                const respuesta = await fetch("https://tienda-video1.vercel.app/api/categorias");
+                const categorias = await respuesta.json();
+                const select = document.getElementById("selectCategoria");
+                categorias.forEach(cat => {
+                    const opcion = document.createElement("option");
+                    opcion.value = cat._id;
+                    opcion.textContent = cat.nombre;
+                    select.appendChild(opcion);
+                });
+            } catch (error) {
+                console.error("No se pudieron cargar las categorías:", error.message);
+            }
+        }
+
         async function cargarVideojuegos() {
             const contenedor = document.getElementById("contenedorJuegos");
 
             // Capturamos los valores de los filtros para mandarlos en la Query String
             const buscar = document.getElementById("inputBuscar").value;
             const plataforma = document.getElementById("selectPlataforma").value;
+            const categoria = document.getElementById("selectCategoria").value;
 
             try {
                 // Construimos la URL dinámica con los parámetros de búsqueda
-                let url = `${API_URL}?buscar=${buscar}&plataforma=${plataforma}`;
+                let url = `${API_URL}?buscar=${buscar}&plataforma=${plataforma}&categoria=${categoria}`;
 
                 const respuesta = await fetch(url);
                 const juegos = await respuesta.json();
@@ -170,6 +191,7 @@
               <h3>${juego.titulo}</h3>
               <p class="precio">$${juego.precio}</p>
               <span class="plataforma">${juego.plataformas.join(', ')}</span>
+              ${juego.categoria && juego.categoria.nombre ? `<span class="plataforma" style="margin-left:6px;">${juego.categoria.nombre}</span>` : ""}
               <br><br>
               <button onclick="window.location.href='detalle.html?id=${juego._id}'">👁️ Ver Detalle</button>
             </div>
@@ -184,6 +206,7 @@
         // Ejecuta la consulta de forma automática al abrir la página por primera vez
         window.onload = () => {
             renderNav("index.html");
+            cargarCategorias();
             cargarVideojuegos();
         };
     </script>

@@ -140,6 +140,11 @@
                 <input type="hidden" id="imagenUrl">
             </div>
             <div class="campo"><label>Empresa Desarrolladora:</label><input type="text" id="desarrollador" required></div>
+            <div class="campo"><label>Categoría:</label>
+                <select id="categoria">
+                    <option value="">Sin categoría</option>
+                </select>
+            </div>
             <button type="submit">💾 Guardar en MongoDB Atlas</button>
             <a href="index.html" class="btn-regresar">⬅️ Cancelar y volver</a>
         </form>
@@ -197,6 +202,24 @@
             }
         });
 
+        // Carga las categorías reales desde la BD y llena el <select>
+        async function cargarCategorias() {
+            try {
+                const respuesta = await fetch("https://tienda-video1.vercel.app/api/categorias");
+                const categorias = await respuesta.json();
+                const select = document.getElementById("categoria");
+                categorias.forEach(cat => {
+                    const opcion = document.createElement("option");
+                    opcion.value = cat._id;
+                    opcion.textContent = cat.nombre;
+                    opcion.dataset.nombre = cat.nombre;
+                    select.appendChild(opcion);
+                });
+            } catch (error) {
+                console.error("No se pudieron cargar las categorías:", error.message);
+            }
+        }
+
         document.getElementById("formJuego").addEventListener("submit", async(e) => {
             e.preventDefault(); // Evitamos que la página se refresque sola
 
@@ -207,6 +230,9 @@
                 return;
             }
 
+            const selectCategoria = document.getElementById("categoria");
+            const opcionCategoria = selectCategoria.options[selectCategoria.selectedIndex];
+
             // Construimos el objeto JSON idéntico a lo que pide tu backend
             const datosJuego = {
                 titulo: document.getElementById("titulo").value,
@@ -215,7 +241,8 @@
                 stock: parseInt(document.getElementById("stock").value),
                 plataformas: [document.getElementById("plataforma").value], // Lo mandamos como arreglo
                 imagenUrl: document.getElementById("imagenUrl").value,
-                desarrollador: document.getElementById("desarrollador").value
+                desarrollador: document.getElementById("desarrollador").value,
+                categoria: selectCategoria.value ? { id: selectCategoria.value, nombre: opcionCategoria.dataset.nombre } : undefined
             };
 
             try {
@@ -242,6 +269,7 @@
 
         window.onload = () => {
             renderNav("agregar.html");
+            cargarCategorias();
         };
     </script>
 </body>
