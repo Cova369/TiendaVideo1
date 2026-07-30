@@ -12,7 +12,7 @@ router.get("/", async(req, res, next) => {
             query.titulo = { $regex: buscar, $option: "i" };
         }
         if (plataforma) {
-            query.plataforms = plataforma;
+            query.plataformas = plataforma;
         }
         const viedojuegos = await Videojuego.find(query);
         res.json(viedojuegos);
