@@ -12,11 +12,11 @@
             color: #fff;
             margin: 40px;
         }
-
+        
         h1 {
             color: #8257e5;
         }
-
+        
         .nav-principal {
             display: flex;
             align-items: center;
@@ -26,63 +26,63 @@
             margin: -40px -40px 30px -40px;
             border-bottom: 1px solid #29292e;
         }
-
+        
         .nav-link {
             color: #a8a8b3;
             text-decoration: none;
             font-size: 14px;
         }
-
+        
         .nav-link:hover,
         .nav-link.activo {
             color: #fff;
         }
-
+        
         .nav-usuario {
             margin-left: auto;
             color: #04d361;
             font-size: 14px;
         }
-
+        
         .layout {
             display: flex;
             gap: 30px;
             align-items: flex-start;
         }
-
+        
         .lista-ordenes {
             flex: 1;
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
-
+        
         .tarjeta-orden {
             background: #202024;
             border: 1px solid #29292e;
             border-radius: 8px;
             padding: 18px 20px;
         }
-
+        
         .tarjeta-orden .encabezado {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
-
+        
         .tarjeta-orden .total {
             color: #04d361;
             font-weight: bold;
         }
-
+        
         .tarjeta-orden ul {
             margin: 8px 0;
             padding-left: 20px;
             color: #a8a8b3;
             font-size: 14px;
         }
-
+        
         .etiqueta-estado {
             padding: 4px 10px;
             border-radius: 4px;
@@ -90,28 +90,28 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-
+        
         .pendiente {
             background: #f7b73433;
             color: #f7b734;
         }
-
+        
         .completado {
             background: #04d36133;
             color: #04d361;
         }
-
+        
         .cancelado {
             background: #f75a6833;
             color: #f75a68;
         }
-
+        
         .control-admin {
             display: flex;
             gap: 10px;
             margin-top: 10px;
         }
-
+        
         select,
         input {
             padding: 8px;
@@ -121,7 +121,7 @@
             color: #fff;
             font-size: 14px;
         }
-
+        
         .form-container {
             width: 360px;
             background: #202024;
@@ -129,29 +129,29 @@
             border-radius: 8px;
             border: 1px solid #29292e;
         }
-
+        
         .campo {
             margin-bottom: 12px;
             display: flex;
             flex-direction: column;
         }
-
+        
         label {
             margin-bottom: 5px;
             color: #a8a8b3;
             font-size: 14px;
         }
-
+        
         .fila-item {
             display: flex;
             gap: 8px;
             margin-bottom: 8px;
         }
-
+        
         .fila-item input {
             flex: 1;
         }
-
+        
         button {
             background: #04d361;
             color: #fff;
@@ -162,25 +162,25 @@
             cursor: pointer;
             font-size: 14px;
         }
-
+        
         button:hover {
             background: #06b956;
         }
-
+        
         .btn-secundario {
             background: #29292e;
             width: 100%;
             margin-bottom: 15px;
         }
-
+        
         .btn-secundario:hover {
             background: #34343a;
         }
-
+        
         .btn-guardar {
             width: 100%;
         }
-
+        
         .total-form {
             text-align: right;
             font-size: 18px;
@@ -188,7 +188,7 @@
             font-weight: bold;
             margin: 10px 0;
         }
-
+        
         .aviso-permiso {
             background: #202024;
             border: 1px solid #29292e;
@@ -198,7 +198,7 @@
             width: 360px;
             text-align: center;
         }
-
+        
         .mensaje-error {
             color: #f75a68;
             font-size: 14px;
@@ -224,6 +224,19 @@
         // Guardamos aquí en memoria los items que el cliente va agregando
         // a su nueva orden, antes de mandarla al backend.
         let itemsNuevaOrden = [];
+
+        // Catálogo real de videojuegos, cargado desde la API. El select del
+        // formulario SOLO puede elegir entre estos — nada de texto libre.
+        let catalogoVideojuegos = [];
+
+        async function cargarCatalogoVideojuegos() {
+            try {
+                const respuesta = await fetch(`${API_BASE}/videojuegos`);
+                catalogoVideojuegos = await respuesta.json();
+            } catch (error) {
+                catalogoVideojuegos = [];
+            }
+        }
 
         async function cargarOrdenes() {
             const contenedor = document.getElementById("listaOrdenes");
@@ -291,8 +304,12 @@
             try {
                 const respuesta = await fetch(`${API_BASE}/ordenes/${ordenId}/estado`, {
                     method: "PUT",
-                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
-                    body: JSON.stringify({ estado: nuevoEstado })
+                    headers: Object.assign({
+                        "Content-Type": "application/json"
+                    }, headerAutorizacion()),
+                    body: JSON.stringify({
+                        estado: nuevoEstado
+                    })
                 });
                 const datos = await respuesta.json();
 
@@ -330,23 +347,35 @@
         }
 
         function agregarItemAlForm() {
-            const titulo = document.getElementById("itemTitulo").value;
+            const selectJuego = document.getElementById("itemVideojuego");
+            const videojuegoId = selectJuego.value;
             const cantidad = parseInt(document.getElementById("itemCantidad").value);
-            const precioUnitario = parseFloat(document.getElementById("itemPrecio").value);
 
-            if (!titulo || !cantidad || !precioUnitario) {
-                alert("Completa título, cantidad y precio del item antes de agregarlo.");
+            // Buscamos el videojuego elegido dentro del catálogo ya cargado,
+            // para sacar SU título y SU precio reales (nunca texto libre).
+            const juego = catalogoVideojuegos.find(j => j._id === videojuegoId);
+
+            if (!juego || !cantidad || cantidad < 1) {
+                alert("Elige un juego y una cantidad válida antes de agregarlo.");
                 return;
             }
 
-            itemsNuevaOrden.push({ titulo, cantidad, precioUnitario });
-            document.getElementById("itemTitulo").value = "";
-            document.getElementById("itemCantidad").value = "";
-            document.getElementById("itemPrecio").value = "";
+            if (cantidad > juego.stock) {
+                alert(`Solo hay ${juego.stock} unidades disponibles de "${juego.titulo}".`);
+                return;
+            }
+
+            itemsNuevaOrden.push({
+                videojuegoId: juego._id,
+                titulo: juego.titulo,
+                cantidad,
+                precioUnitario: juego.precio
+            });
+            document.getElementById("itemCantidad").value = "1";
             renderListaItemsForm();
         }
 
-        function renderPanelLateral() {
+        async function renderPanelLateral() {
             const sesion = obtenerSesion();
             const panel = document.getElementById("panelLateral");
 
@@ -361,17 +390,28 @@
                 return;
             }
 
-            // Solo cliente ve el formulario para armar una orden nueva
+            // Solo cliente ve el formulario para armar una orden nueva.
+            // Cargamos el catálogo real ANTES de dibujar el select.
             itemsNuevaOrden = [];
+            await cargarCatalogoVideojuegos();
+
+            if (catalogoVideojuegos.length === 0) {
+                panel.innerHTML = `<div class="aviso-permiso">Todavía no hay videojuegos en el catálogo para poder ordenar.</div>`;
+                return;
+            }
+
             panel.innerHTML = `
         <div class="form-container">
           <h3>➕ Nueva orden</h3>
           <div class="fila-item">
-            <input type="text" id="itemTitulo" placeholder="Título del juego">
+            <select id="itemVideojuego" style="flex:1;">
+              ${catalogoVideojuegos.map(juego =>
+                `<option value="${juego._id}">${juego.titulo} — $${juego.precio} (stock: ${juego.stock})</option>`
+              ).join("")}
+            </select>
           </div>
           <div class="fila-item">
-            <input type="number" id="itemCantidad" placeholder="Cantidad" min="1">
-            <input type="number" id="itemPrecio" placeholder="Precio unitario" min="0" step="0.01">
+            <input type="number" id="itemCantidad" placeholder="Cantidad" min="1" value="1">
           </div>
           <button type="button" class="btn-secundario" onclick="agregarItemAlForm()">+ Agregar item a la orden</button>
 
@@ -393,13 +433,19 @@
                 return;
             }
 
-            const total = itemsNuevaOrden.reduce((suma, item) => suma + (item.cantidad * item.precioUnitario), 0);
+            // Solo mandamos videojuegoId y cantidad: el backend consulta el
+            // precio real de cada juego y calcula el total él mismo, así que
+            // no tiene caso (ni es seguro) mandarle un total ya calculado aquí.
+            const itemsParaEnviar = itemsNuevaOrden.map(item => ({
+                videojuegoId: item.videojuegoId,
+                cantidad: item.cantidad
+            }));
 
             try {
                 const respuesta = await fetch(`${API_BASE}/ordenes`, {
                     method: "POST",
                     headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
-                    body: JSON.stringify({ items: itemsNuevaOrden, total })
+                    body: JSON.stringify({ items: itemsParaEnviar })
                 });
                 const datos = await respuesta.json();
 

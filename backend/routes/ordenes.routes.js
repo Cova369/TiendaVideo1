@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Orden = require("../models/Orden");
+const Videojuego = require("../models/Videojuego");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
 
 // GET — cualquier usuario logueado puede ver órdenes.
@@ -15,14 +16,44 @@ router.get("/", verificarToken, async(req, res, next) => {
     }
 });
 
-// POST — el CLIENTE crea su propia orden. Tomamos el id/nombre del usuario
-// directo del token (req.usuario), no de lo que mande el body, para que
-// nadie pueda crear una orden a nombre de otra persona.
+// POST — el CLIENTE crea su propia orden.
+// El frontend solo manda [{ videojuegoId, cantidad }] por cada item — NUNCA
+// se confía en un título o precio que venga del cliente (alguien podría
+// mandarlo directo por Postman con un precio inventado). Aquí se busca cada
+// videojuego real en la base de datos y se usa SU título y SU precio actual.
 router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) => {
     try {
-        const { items, total } = req.body;
-        if (!items || items.length === 0 || total === undefined) {
-            return res.status(400).json({ mensaje: "faltan campos por llenar" });
+        const { items } = req.body;
+        if (!items || items.length === 0) {
+            return res.status(400).json({ mensaje: "Agrega al menos un videojuego a la orden" });
+        }
+
+        const itemsValidados = [];
+        let total = 0;
+
+        for (const item of items) {
+            if (!item.videojuegoId || !item.cantidad || item.cantidad < 1) {
+                return res.status(400).json({ mensaje: "Cada item necesita un videojuegoId y una cantidad válida" });
+            }
+
+            const videojuego = await Videojuego.findById(item.videojuegoId);
+            if (!videojuego) {
+                return res.status(404).json({ mensaje: "Uno de los videojuegos ya no existe en el catálogo" });
+            }
+
+            if (videojuego.stock < item.cantidad) {
+                return res.status(400).json({ mensaje: `No hay stock suficiente de "${videojuego.titulo}" (disponibles: ${videojuego.stock})` });
+            }
+
+            // El precio y el título salen SIEMPRE del documento real, nunca
+            // de lo que mandó el cliente en el body.
+            itemsValidados.push({
+                videojuegoId: videojuego._id,
+                titulo: videojuego.titulo,
+                cantidad: item.cantidad,
+                precioUnitario: videojuego.precio
+            });
+            total += videojuego.precio * item.cantidad;
         }
 
         const nuevaOrden = new Orden({
@@ -30,7 +61,7 @@ router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) 
                 id: req.usuario.id,
                 nombre: req.usuario.nombreCompleto
             },
-            items,
+            items: itemsValidados,
             total,
             estado: "pendiente" // toda orden nueva nace en este estado
         });
