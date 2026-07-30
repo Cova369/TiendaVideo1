@@ -12,7 +12,7 @@
             color: #fff;
             margin: 40px;
         }
-
+        
         .nav-principal {
             display: flex;
             align-items: center;
@@ -22,24 +22,24 @@
             margin: -40px -40px 30px -40px;
             border-bottom: 1px solid #29292e;
         }
-
+        
         .nav-link {
             color: #a8a8b3;
             text-decoration: none;
             font-size: 14px;
         }
-
+        
         .nav-link:hover,
         .nav-link.activo {
             color: #fff;
         }
-
+        
         .nav-usuario {
             margin-left: auto;
             color: #04d361;
             font-size: 14px;
         }
-
+        
         .contenido-centrado {
             display: flex;
             justify-content: center;
@@ -119,16 +119,16 @@
             margin-top: 15px;
             display: block;
         }
-
+        
         .seccion-resenas {
             max-width: 600px;
             margin: 30px auto 0 auto;
         }
-
+        
         .seccion-resenas h3 {
             color: #8257e5;
         }
-
+        
         .tarjeta-resena {
             background: #202024;
             border: 1px solid #29292e;
@@ -136,21 +136,21 @@
             padding: 15px;
             margin-bottom: 10px;
         }
-
+        
         .tarjeta-resena .encabezado-resena {
             display: flex;
             justify-content: space-between;
             margin-bottom: 5px;
         }
-
+        
         .tarjeta-resena .autor {
             font-weight: bold;
         }
-
+        
         .tarjeta-resena .estrellas {
             color: #f7b734;
         }
-
+        
         .form-resena {
             background: #202024;
             border: 1px solid #29292e;
@@ -158,7 +158,7 @@
             padding: 20px;
             margin-top: 15px;
         }
-
+        
         .form-resena select,
         .form-resena textarea {
             width: 100%;
@@ -171,7 +171,7 @@
             box-sizing: border-box;
             margin-bottom: 10px;
         }
-
+        
         .form-resena button {
             background: #04d361;
             color: #fff;
@@ -182,7 +182,7 @@
             cursor: pointer;
             width: 100%;
         }
-
+        
         .aviso-permiso-resena {
             color: #a8a8b3;
             font-size: 14px;
@@ -198,13 +198,15 @@
 
     <div class="seccion-resenas" id="seccionResenas">
         <h3>💬 Reseñas</h3>
-        <div id="listaResenas"><p>Cargando reseñas...</p></div>
+        <div id="listaResenas">
+            <p>Cargando reseñas...</p>
+        </div>
         <div id="panelResena"></div>
     </div>
 
     <script src="js/sesion.js"></script>
     <script>
-        const API_URL = "https://tienda-video1-ojcs.vercel.app/api/videojuegos";
+        const API_URL = "https://tienda-video1.vercel.app/api/videojuegos";
 
         // Función nativa de JS para extraer parámetros de la barra de direcciones (?id=...)
         const urlParams = new URLSearchParams(window.location.search);
@@ -349,7 +351,9 @@
 
                 const respuesta = await fetch(url, {
                     method: metodo,
-                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
+                    headers: Object.assign({
+                        "Content-Type": "application/json"
+                    }, headerAutorizacion()),
                     body: JSON.stringify(datosResena)
                 });
                 const datos = await respuesta.json();
