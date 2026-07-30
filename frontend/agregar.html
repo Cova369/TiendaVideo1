@@ -21,6 +21,7 @@
             border-radius: 8px;
             width: 450px;
             border: 1px solid #29292e;
+            margin-top: 70px;
         }
         
         h2 {
@@ -78,6 +79,37 @@
             border-radius: 5px;
             font-size: 14px;
         }
+
+        .nav-principal {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #202024;
+            padding: 15px 30px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            border-bottom: 1px solid #29292e;
+        }
+
+        .nav-link {
+            color: #a8a8b3;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-link:hover,
+        .nav-link.activo {
+            color: #fff;
+        }
+
+        .nav-usuario {
+            margin-left: auto;
+            color: #04d361;
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -113,8 +145,9 @@
         </form>
     </div>
 
+    <script src="js/sesion.js"></script>
     <script>
-        const API_URL = "https://tienda-video1.vercel.app/api/videojuegos";
+        const API_URL = "https://tienda-video1-ojcs.vercel.app/api/videojuegos";
 
         // --- Configuración de Cloudinary ---
         // El "cloud name" y el "upload preset" NO son secretos: viven en el
@@ -145,7 +178,7 @@
                 const respuesta = await fetch(CLOUDINARY_URL, {
                     method: "POST",
                     body: formData // Nota: NO se manda "Content-Type" a mano,
-                        // el navegador lo pone solo con el boundary correcto
+                                    // el navegador lo pone solo con el boundary correcto
                 });
                 const datos = await respuesta.json();
 
@@ -204,6 +237,10 @@
                 alert("❌ Error de red: " + error.message);
             }
         });
+
+        window.onload = () => {
+            renderNav("agregar.html");
+        };
     </script>
 </body>
 

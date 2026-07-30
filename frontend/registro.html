@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 Crear Cuenta</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .form-container {
+            background: #202024;
+            padding: 30px;
+            border-radius: 8px;
+            width: 380px;
+            border: 1px solid #29292e;
+            margin-top: 20px;
+        }
+
+        h2 {
+            color: #04d361;
+            margin-top: 0;
+        }
+
+        .campo {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #a8a8b3;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #121214;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        button {
+            background: #04d361;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #06b956;
+        }
+
+        .mensaje-error {
+            color: #f75a68;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .link-login {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #a8a8b3;
+            font-size: 14px;
+        }
+
+        p.nota {
+            color: #a8a8b3;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h2>📝 Crear Cuenta de Cliente</h2>
+        <p class="nota">Este registro solo crea cuentas de tipo cliente. Las cuentas de administrador se crean por separado.</p>
+        <form id="formRegistro">
+            <div class="campo"><label>Nombre completo:</label><input type="text" id="nombreCompleto" required></div>
+            <div class="campo"><label>Email:</label><input type="email" id="email" required></div>
+            <div class="campo"><label>Contraseña:</label><input type="password" id="password" minlength="6" required></div>
+            <button type="submit">Crear cuenta</button>
+            <div id="mensajeError" class="mensaje-error"></div>
+        </form>
+        <a href="login.html" class="link-login">¿Ya tienes cuenta? Inicia sesión</a>
+    </div>
+
+    <script src="js/sesion.js"></script>
+    <script>
+        document.getElementById("formRegistro").addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const mensajeError = document.getElementById("mensajeError");
+            mensajeError.textContent = "";
+
+            const datosUsuario = {
+                nombreCompleto: document.getElementById("nombreCompleto").value,
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value,
+                rol: "cliente" // fijo: el formulario público NUNCA deja elegir "admin"
+            };
+
+            try {
+                const respuesta = await fetch(`${API_BASE}/usuarios`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(datosUsuario)
+                });
+
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    mensajeError.textContent = "❌ " + (datos.mensaje || "No se pudo crear la cuenta");
+                    return;
+                }
+
+                alert("✅ Cuenta creada. Ahora inicia sesión.");
+                window.location.href = "login.html";
+            } catch (error) {
+                mensajeError.textContent = "❌ Error de red: " + error.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

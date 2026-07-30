@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Iniciar Sesión</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .nav-principal {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #202024;
+            padding: 15px 30px;
+            margin: -40px -40px 30px -40px;
+            border-bottom: 1px solid #29292e;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-sizing: border-box;
+        }
+
+        .nav-link {
+            color: #a8a8b3;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-link:hover,
+        .nav-link.activo {
+            color: #fff;
+        }
+
+        .nav-usuario {
+            margin-left: auto;
+            color: #04d361;
+            font-size: 14px;
+        }
+
+        .form-container {
+            background: #202024;
+            padding: 30px;
+            border-radius: 8px;
+            width: 380px;
+            border: 1px solid #29292e;
+            margin-top: 60px;
+            height: fit-content;
+        }
+
+        h2 {
+            color: #8257e5;
+            margin-top: 0;
+        }
+
+        .campo {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #a8a8b3;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #121214;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        button {
+            background: #8257e5;
+            color: #fff;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #9466ff;
+        }
+
+        .mensaje-error {
+            color: #f75a68;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .link-registro {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #a8a8b3;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="form-container">
+        <h2>🔐 Iniciar Sesión</h2>
+        <form id="formLogin">
+            <div class="campo"><label>Email:</label><input type="email" id="email" required></div>
+            <div class="campo"><label>Contraseña:</label><input type="password" id="password" required></div>
+            <button type="submit">Entrar</button>
+            <div id="mensajeError" class="mensaje-error"></div>
+        </form>
+        <a href="registro.html" class="link-registro">¿No tienes cuenta? Regístrate aquí</a>
+    </div>
+
+    <script src="js/sesion.js"></script>
+    <script>
+        // Si ya había una sesión activa, no tiene sentido quedarse en login
+        if (obtenerSesion()) {
+            window.location.href = "index.html";
+        }
+
+        document.getElementById("formLogin").addEventListener("submit", async(e) => {
+            e.preventDefault();
+            const mensajeError = document.getElementById("mensajeError");
+            mensajeError.textContent = "";
+
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const respuesta = await fetch(`${API_BASE}/usuarios/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    mensajeError.textContent = "❌ " + (datos.mensaje || "No se pudo iniciar sesión");
+                    return;
+                }
+
+                guardarSesion(datos.token, datos.usuario);
+                window.location.href = "index.html";
+            } catch (error) {
+                mensajeError.textContent = "❌ Error de red: " + error.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

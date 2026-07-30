@@ -11,6 +11,36 @@
             background: #121214;
             color: #fff;
             margin: 40px;
+        }
+
+        .nav-principal {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #202024;
+            padding: 15px 30px;
+            margin: -40px -40px 30px -40px;
+            border-bottom: 1px solid #29292e;
+        }
+
+        .nav-link {
+            color: #a8a8b3;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-link:hover,
+        .nav-link.activo {
+            color: #fff;
+        }
+
+        .nav-usuario {
+            margin-left: auto;
+            color: #04d361;
+            font-size: 14px;
+        }
+
+        .contenido-centrado {
             display: flex;
             justify-content: center;
         }
@@ -89,15 +119,92 @@
             margin-top: 15px;
             display: block;
         }
+
+        .seccion-resenas {
+            max-width: 600px;
+            margin: 30px auto 0 auto;
+        }
+
+        .seccion-resenas h3 {
+            color: #8257e5;
+        }
+
+        .tarjeta-resena {
+            background: #202024;
+            border: 1px solid #29292e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .tarjeta-resena .encabezado-resena {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .tarjeta-resena .autor {
+            font-weight: bold;
+        }
+
+        .tarjeta-resena .estrellas {
+            color: #f7b734;
+        }
+
+        .form-resena {
+            background: #202024;
+            border: 1px solid #29292e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .form-resena select,
+        .form-resena textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #121214;
+            color: #fff;
+            font-size: 14px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .form-resena button {
+            background: #04d361;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .aviso-permiso-resena {
+            color: #a8a8b3;
+            font-size: 14px;
+        }
     </style>
 </head>
 
 <body>
 
-    <div id="contenedorDetalle">Cargando detalles del juego...</div>
+    <div class="contenido-centrado">
+        <div id="contenedorDetalle">Cargando detalles del juego...</div>
+    </div>
 
+    <div class="seccion-resenas" id="seccionResenas">
+        <h3>💬 Reseñas</h3>
+        <div id="listaResenas"><p>Cargando reseñas...</p></div>
+        <div id="panelResena"></div>
+    </div>
+
+    <script src="js/sesion.js"></script>
     <script>
-        const API_URL = "https://tienda-video1.vercel.app/api/videojuegos";
+        const API_URL = "https://tienda-video1-ojcs.vercel.app/api/videojuegos";
 
         // Función nativa de JS para extraer parámetros de la barra de direcciones (?id=...)
         const urlParams = new URLSearchParams(window.location.search);
@@ -149,7 +256,122 @@
             }
         }
 
-        window.onload = cargarDetalle;
+        // ============================================================
+        // RESEÑAS
+        // ============================================================
+
+        // Guarda la reseña del usuario actual (si ya tiene una para este
+        // juego) para saber si el formulario debe crear o actualizar.
+        let miResenaExistente = null;
+
+        async function cargarResenas() {
+            const contenedor = document.getElementById("listaResenas");
+            const sesion = obtenerSesion();
+
+            try {
+                const respuesta = await fetch(`${API_BASE}/resenas?videojuegoId=${juegoId}`);
+                const resenas = await respuesta.json();
+
+                miResenaExistente = null;
+                if (sesion) {
+                    miResenaExistente = resenas.find(r => String(r.usuario.id) === String(sesion.usuario.id)) || null;
+                }
+
+                if (resenas.length === 0) {
+                    contenedor.innerHTML = "<p>Todavía no hay reseñas para este juego. ¡Sé el primero!</p>";
+                    return;
+                }
+
+                contenedor.innerHTML = resenas.map(resena => `
+          <div class="tarjeta-resena">
+            <div class="encabezado-resena">
+              <span class="autor">${resena.usuario.nombre || 'Cliente'}</span>
+              <span class="estrellas">${'⭐'.repeat(resena.calificacion)}</span>
+            </div>
+            <p>${resena.comentario}</p>
+          </div>
+        `).join("");
+            } catch (error) {
+                contenedor.innerHTML = `<p style="color:#f75a68;">❌ Error al cargar reseñas: ${error.message}</p>`;
+            }
+        }
+
+        function renderPanelResena() {
+            const sesion = obtenerSesion();
+            const panel = document.getElementById("panelResena");
+
+            if (!sesion) {
+                panel.innerHTML = `<p class="aviso-permiso-resena">Inicia sesión como cliente para dejar tu reseña. <a href="login.html" style="color:#8257e5;">Iniciar sesión</a></p>`;
+                return;
+            }
+
+            if (sesion.usuario.rol !== "cliente") {
+                panel.innerHTML = `<p class="aviso-permiso-resena">Solo los clientes pueden publicar reseñas.</p>`;
+                return;
+            }
+
+            const calificacionActual = miResenaExistente ? miResenaExistente.calificacion : 5;
+            const comentarioActual = miResenaExistente ? miResenaExistente.comentario : "";
+            const textoBoton = miResenaExistente ? "Actualizar mi reseña" : "Publicar reseña";
+
+            panel.innerHTML = `
+        <div class="form-resena">
+          <h4>${miResenaExistente ? '✏️ Edita tu reseña' : '➕ Deja tu reseña'}</h4>
+          <select id="calificacion">
+            <option value="5" ${calificacionActual == 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5)</option>
+            <option value="4" ${calificacionActual == 4 ? 'selected' : ''}>⭐⭐⭐⭐ (4)</option>
+            <option value="3" ${calificacionActual == 3 ? 'selected' : ''}>⭐⭐⭐ (3)</option>
+            <option value="2" ${calificacionActual == 2 ? 'selected' : ''}>⭐⭐ (2)</option>
+            <option value="1" ${calificacionActual == 1 ? 'selected' : ''}>⭐ (1)</option>
+          </select>
+          <textarea id="comentario" rows="3" placeholder="¿Qué te pareció el juego?">${comentarioActual}</textarea>
+          <button onclick="guardarResena()">${textoBoton}</button>
+          <div id="mensajeErrorResena" style="color:#f75a68; font-size:14px; margin-top:8px;"></div>
+        </div>
+      `;
+        }
+
+        async function guardarResena() {
+            const mensajeError = document.getElementById("mensajeErrorResena");
+            mensajeError.textContent = "";
+
+            const datosResena = {
+                videojuegoId: juegoId,
+                calificacion: parseInt(document.getElementById("calificacion").value),
+                comentario: document.getElementById("comentario").value
+            };
+
+            try {
+                // Si ya existía una reseña de este usuario para este juego,
+                // la actualizamos (PUT); si no, creamos una nueva (POST).
+                const url = miResenaExistente ? `${API_BASE}/resenas/${miResenaExistente._id}` : `${API_BASE}/resenas`;
+                const metodo = miResenaExistente ? "PUT" : "POST";
+
+                const respuesta = await fetch(url, {
+                    method: metodo,
+                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
+                    body: JSON.stringify(datosResena)
+                });
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    mensajeError.textContent = "❌ " + (datos.mensaje || "No se pudo guardar la reseña");
+                    return;
+                }
+
+                await cargarResenas();
+                renderPanelResena();
+            } catch (error) {
+                mensajeError.textContent = "❌ Error de red: " + error.message;
+            }
+        }
+
+        window.onload = async() => {
+            renderNav("detalle.html");
+            await cargarDetalle();
+            await cargarResenas();
+            renderPanelResena();
+        };
     </script>
 </body>
 

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧾 Órdenes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #121214;
+            color: #fff;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #8257e5;
+        }
+
+        .nav-principal {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #202024;
+            padding: 15px 30px;
+            margin: -40px -40px 30px -40px;
+            border-bottom: 1px solid #29292e;
+        }
+
+        .nav-link {
+            color: #a8a8b3;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-link:hover,
+        .nav-link.activo {
+            color: #fff;
+        }
+
+        .nav-usuario {
+            margin-left: auto;
+            color: #04d361;
+            font-size: 14px;
+        }
+
+        .layout {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .lista-ordenes {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tarjeta-orden {
+            background: #202024;
+            border: 1px solid #29292e;
+            border-radius: 8px;
+            padding: 18px 20px;
+        }
+
+        .tarjeta-orden .encabezado {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .tarjeta-orden .total {
+            color: #04d361;
+            font-weight: bold;
+        }
+
+        .tarjeta-orden ul {
+            margin: 8px 0;
+            padding-left: 20px;
+            color: #a8a8b3;
+            font-size: 14px;
+        }
+
+        .etiqueta-estado {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .pendiente {
+            background: #f7b73433;
+            color: #f7b734;
+        }
+
+        .completado {
+            background: #04d36133;
+            color: #04d361;
+        }
+
+        .cancelado {
+            background: #f75a6833;
+            color: #f75a68;
+        }
+
+        .control-admin {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        select,
+        input {
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            background: #121214;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .form-container {
+            width: 360px;
+            background: #202024;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #29292e;
+        }
+
+        .campo {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            color: #a8a8b3;
+            font-size: 14px;
+        }
+
+        .fila-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .fila-item input {
+            flex: 1;
+        }
+
+        button {
+            background: #04d361;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #06b956;
+        }
+
+        .btn-secundario {
+            background: #29292e;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .btn-secundario:hover {
+            background: #34343a;
+        }
+
+        .btn-guardar {
+            width: 100%;
+        }
+
+        .total-form {
+            text-align: right;
+            font-size: 18px;
+            color: #04d361;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .aviso-permiso {
+            background: #202024;
+            border: 1px solid #29292e;
+            border-radius: 8px;
+            padding: 20px;
+            color: #a8a8b3;
+            width: 360px;
+            text-align: center;
+        }
+
+        .mensaje-error {
+            color: #f75a68;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🧾 Órdenes</h1>
+
+    <div class="layout">
+        <div class="lista-ordenes" id="listaOrdenes">
+            <p>Cargando órdenes...</p>
+        </div>
+
+        <div id="panelLateral"></div>
+    </div>
+
+    <script src="js/sesion.js"></script>
+    <script>
+        // Guardamos aquí en memoria los items que el cliente va agregando
+        // a su nueva orden, antes de mandarla al backend.
+        let itemsNuevaOrden = [];
+
+        async function cargarOrdenes() {
+            const contenedor = document.getElementById("listaOrdenes");
+            const sesion = obtenerSesion();
+
+            if (!sesion) {
+                contenedor.innerHTML = "<p>Inicia sesión para ver tus órdenes.</p>";
+                return;
+            }
+
+            try {
+                const respuesta = await fetch(`${API_BASE}/ordenes`, {
+                    headers: headerAutorizacion()
+                });
+                const ordenes = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    contenedor.innerHTML = `<p style="color:#f75a68;">❌ ${ordenes.mensaje || 'Error al cargar órdenes'}</p>`;
+                    return;
+                }
+
+                if (ordenes.length === 0) {
+                    contenedor.innerHTML = "<p>Todavía no hay órdenes registradas.</p>";
+                    return;
+                }
+
+                const esAdmin = sesion.usuario.rol === "admin";
+
+                contenedor.innerHTML = ordenes.map(orden => {
+                    const items = orden.items.map(item =>
+                        `<li>${item.cantidad}x ${item.titulo} — $${item.precioUnitario} c/u</li>`
+                    ).join("");
+
+                    const controlEstado = esAdmin ? `
+            <div class="control-admin">
+              <select id="estado-${orden._id}">
+                <option value="pendiente" ${orden.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                <option value="completado" ${orden.estado === 'completado' ? 'selected' : ''}>Completado</option>
+                <option value="cancelado" ${orden.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+              </select>
+              <button onclick="cambiarEstado('${orden._id}')">Actualizar estado</button>
+            </div>
+          ` : "";
+
+                    return `
+            <div class="tarjeta-orden">
+              <div class="encabezado">
+                <strong>${esAdmin ? (orden.usuario.nombre || 'Cliente') : 'Tu orden'}</strong>
+                <span class="etiqueta-estado ${orden.estado}">${orden.estado}</span>
+              </div>
+              <ul>${items}</ul>
+              <div class="total">Total: $${orden.total}</div>
+              ${controlEstado}
+            </div>
+          `;
+                }).join("");
+            } catch (error) {
+                contenedor.innerHTML = `<p style="color:#f75a68;">❌ Error al conectar: ${error.message}</p>`;
+            }
+        }
+
+        // Solo el admin usa esto (el botón únicamente aparece para admin)
+        async function cambiarEstado(ordenId) {
+            const nuevoEstado = document.getElementById(`estado-${ordenId}`).value;
+            try {
+                const respuesta = await fetch(`${API_BASE}/ordenes/${ordenId}/estado`, {
+                    method: "PUT",
+                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
+                    body: JSON.stringify({ estado: nuevoEstado })
+                });
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    alert("❌ " + (datos.mensaje || "No se pudo actualizar"));
+                    return;
+                }
+                cargarOrdenes();
+            } catch (error) {
+                alert("❌ Error de red: " + error.message);
+            }
+        }
+
+        function recalcularTotal() {
+            const total = itemsNuevaOrden.reduce((suma, item) => suma + (item.cantidad * item.precioUnitario), 0);
+            const elementoTotal = document.getElementById("totalNuevaOrden");
+            if (elementoTotal) elementoTotal.textContent = "Total: $" + total.toFixed(2);
+        }
+
+        function renderListaItemsForm() {
+            const contenedor = document.getElementById("listaItemsForm");
+            if (!contenedor) return;
+            contenedor.innerHTML = itemsNuevaOrden.map((item, indice) =>
+                `<div style="display:flex; justify-content:space-between; color:#a8a8b3; font-size:13px; margin-bottom:4px;">
+          <span>${item.cantidad}x ${item.titulo} ($${item.precioUnitario} c/u)</span>
+          <span style="cursor:pointer; color:#f75a68;" onclick="quitarItem(${indice})">✕</span>
+        </div>`
+            ).join("");
+            recalcularTotal();
+        }
+
+        function quitarItem(indice) {
+            itemsNuevaOrden.splice(indice, 1);
+            renderListaItemsForm();
+        }
+
+        function agregarItemAlForm() {
+            const titulo = document.getElementById("itemTitulo").value;
+            const cantidad = parseInt(document.getElementById("itemCantidad").value);
+            const precioUnitario = parseFloat(document.getElementById("itemPrecio").value);
+
+            if (!titulo || !cantidad || !precioUnitario) {
+                alert("Completa título, cantidad y precio del item antes de agregarlo.");
+                return;
+            }
+
+            itemsNuevaOrden.push({ titulo, cantidad, precioUnitario });
+            document.getElementById("itemTitulo").value = "";
+            document.getElementById("itemCantidad").value = "";
+            document.getElementById("itemPrecio").value = "";
+            renderListaItemsForm();
+        }
+
+        function renderPanelLateral() {
+            const sesion = obtenerSesion();
+            const panel = document.getElementById("panelLateral");
+
+            if (!sesion) {
+                panel.innerHTML = `<div class="aviso-permiso">Inicia sesión para ver o crear órdenes.<br><br>
+          <a href="login.html" style="color:#8257e5;">Iniciar sesión</a></div>`;
+                return;
+            }
+
+            if (sesion.usuario.rol === "admin") {
+                panel.innerHTML = `<div class="aviso-permiso">Como administrador puedes cambiar el estado de cada orden directamente en la lista.</div>`;
+                return;
+            }
+
+            // Solo cliente ve el formulario para armar una orden nueva
+            itemsNuevaOrden = [];
+            panel.innerHTML = `
+        <div class="form-container">
+          <h3>➕ Nueva orden</h3>
+          <div class="fila-item">
+            <input type="text" id="itemTitulo" placeholder="Título del juego">
+          </div>
+          <div class="fila-item">
+            <input type="number" id="itemCantidad" placeholder="Cantidad" min="1">
+            <input type="number" id="itemPrecio" placeholder="Precio unitario" min="0" step="0.01">
+          </div>
+          <button type="button" class="btn-secundario" onclick="agregarItemAlForm()">+ Agregar item a la orden</button>
+
+          <div id="listaItemsForm"></div>
+          <div class="total-form" id="totalNuevaOrden">Total: $0.00</div>
+
+          <button type="button" class="btn-guardar" onclick="crearOrden()">✅ Confirmar orden</button>
+          <div id="mensajeError" class="mensaje-error"></div>
+        </div>
+      `;
+        }
+
+        async function crearOrden() {
+            const mensajeError = document.getElementById("mensajeError");
+            mensajeError.textContent = "";
+
+            if (itemsNuevaOrden.length === 0) {
+                mensajeError.textContent = "❌ Agrega al menos un item a la orden.";
+                return;
+            }
+
+            const total = itemsNuevaOrden.reduce((suma, item) => suma + (item.cantidad * item.precioUnitario), 0);
+
+            try {
+                const respuesta = await fetch(`${API_BASE}/ordenes`, {
+                    method: "POST",
+                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
+                    body: JSON.stringify({ items: itemsNuevaOrden, total })
+                });
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    mensajeError.textContent = "❌ " + (datos.mensaje || "No se pudo crear la orden");
+                    return;
+                }
+
+                alert("✅ Orden creada correctamente");
+                itemsNuevaOrden = [];
+                renderPanelLateral();
+                cargarOrdenes();
+            } catch (error) {
+                mensajeError.textContent = "❌ Error de red: " + error.message;
+            }
+        }
+
+        window.onload = () => {
+            renderNav("ordenes.html");
+            cargarOrdenes();
+            renderPanelLateral();
+        };
+    </script>
+</body>
+
+</html>
