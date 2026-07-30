@@ -63,6 +63,12 @@
             border-radius: 8px;
             padding: 15px 20px;
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tarjeta-cupon .fila-principal {
+            display: flex;
             justify-content: space-between;
             align-items: center;
         }
@@ -160,12 +166,68 @@
             font-size: 14px;
             margin-top: 10px;
         }
+
+        .filtros {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .filtros input,
+        .filtros select {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #202024;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .filtros button {
+            width: auto;
+            background: #8257e5;
+            padding: 10px 16px;
+        }
+
+        .filtros button:hover {
+            background: #9466ff;
+        }
+
+        .acciones-cupon {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .acciones-cupon button {
+            width: auto;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-eliminar {
+            background: #f75a68 !important;
+        }
+
+        .btn-eliminar:hover {
+            background: #d94552 !important;
+        }
     </style>
 </head>
 
 <body>
 
     <h1>🎟️ Cupones de Descuento</h1>
+
+    <div class="filtros">
+        <input type="text" id="inputBuscarCupon" placeholder="Buscar por código...">
+        <select id="selectActivoCupon">
+            <option value="">Todos los estados</option>
+            <option value="true">Solo activos</option>
+            <option value="false">Solo inactivos</option>
+        </select>
+        <button type="button" onclick="cargarCupones()">🔍 Filtrar</button>
+    </div>
 
     <div class="layout">
         <div class="lista-cupones" id="listaCupones">
@@ -177,31 +239,112 @@
 
     <script src="js/sesion.js"></script>
     <script>
+        let cuponesCache = [];
+
         async function cargarCupones() {
             const contenedor = document.getElementById("listaCupones");
+            const sesion = obtenerSesion();
+            const esAdmin = sesion && sesion.usuario.rol === "admin";
+            const buscar = document.getElementById("inputBuscarCupon").value;
+            const activo = document.getElementById("selectActivoCupon").value;
+
             try {
-                const respuesta = await fetch(`${API_BASE}/cupones`);
+                const url = `${API_BASE}/cupones?buscar=${encodeURIComponent(buscar)}&activo=${activo}`;
+                const respuesta = await fetch(url);
                 const cupones = await respuesta.json();
+                cuponesCache = cupones;
 
                 if (cupones.length === 0) {
-                    contenedor.innerHTML = "<p>Todavía no hay cupones registrados.</p>";
+                    contenedor.innerHTML = "<p>No se encontraron cupones.</p>";
                     return;
                 }
 
                 contenedor.innerHTML = cupones.map(cupon => {
                     const fecha = new Date(cupon.fechaExpiracion).toLocaleDateString("es-MX");
                     return `
-            <div class="tarjeta-cupon">
-              <div>
-                <div class="codigo">${cupon.codigo}</div>
-                <div class="detalle">${cupon.porcentajeDescuento}% de descuento · vence ${fecha}</div>
+            <div class="tarjeta-cupon" id="cupon-${cupon._id}">
+              <div class="fila-principal">
+                <div>
+                  <div class="codigo">${cupon.codigo}</div>
+                  <div class="detalle">${cupon.porcentajeDescuento}% de descuento · vence ${fecha}</div>
+                </div>
+                <span class="etiqueta-estado ${cupon.activo ? 'activo' : 'inactivo'}">${cupon.activo ? 'Activo' : 'Inactivo'}</span>
               </div>
-              <span class="etiqueta-estado ${cupon.activo ? 'activo' : 'inactivo'}">${cupon.activo ? 'Activo' : 'Inactivo'}</span>
+              ${esAdmin ? `
+              <div class="acciones-cupon">
+                <button type="button" onclick="activarEdicionCupon('${cupon._id}')">✏️ Editar</button>
+                <button type="button" class="btn-eliminar" onclick="eliminarCupon('${cupon._id}')">🗑️ Eliminar</button>
+              </div>` : ""}
             </div>
           `;
                 }).join("");
             } catch (error) {
                 contenedor.innerHTML = `<p style="color:#f75a68;">❌ Error al conectar: ${error.message}</p>`;
+            }
+        }
+
+        // Convierte una fecha ISO a formato yyyy-mm-dd para el <input type="date">
+        function formatoFechaInput(fechaISO) {
+            return new Date(fechaISO).toISOString().split("T")[0];
+        }
+
+        function activarEdicionCupon(id) {
+            const cupon = cuponesCache.find(c => c._id === id);
+            if (!cupon) return;
+            const tarjeta = document.getElementById(`cupon-${id}`);
+            tarjeta.innerHTML = `
+        <div class="campo"><label>Código:</label><input type="text" id="editCodigo-${id}" value="${cupon.codigo}"></div>
+        <div class="campo"><label>% de descuento:</label><input type="number" id="editPorcentaje-${id}" min="1" max="100" value="${cupon.porcentajeDescuento}"></div>
+        <div class="campo"><label>Fecha de expiración:</label><input type="date" id="editFecha-${id}" value="${formatoFechaInput(cupon.fechaExpiracion)}"></div>
+        <div class="campo campo-checkbox"><input type="checkbox" id="editActivo-${id}" ${cupon.activo ? "checked" : ""}><label style="margin:0;">Activo</label></div>
+        <div class="acciones-cupon">
+          <button type="button" onclick="guardarEdicionCupon('${id}')">💾 Guardar</button>
+          <button type="button" style="background:#29292e;" onclick="cargarCupones()">Cancelar</button>
+        </div>
+        <div id="mensajeErrorEdit-${id}" class="mensaje-error"></div>
+      `;
+        }
+
+        async function guardarEdicionCupon(id) {
+            const mensajeError = document.getElementById(`mensajeErrorEdit-${id}`);
+            const datosCupon = {
+                codigo: document.getElementById(`editCodigo-${id}`).value,
+                porcentajeDescuento: parseFloat(document.getElementById(`editPorcentaje-${id}`).value),
+                activo: document.getElementById(`editActivo-${id}`).checked,
+                fechaExpiracion: document.getElementById(`editFecha-${id}`).value
+            };
+            try {
+                const respuesta = await fetch(`${API_BASE}/cupones/${id}`, {
+                    method: "PUT",
+                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
+                    body: JSON.stringify(datosCupon)
+                });
+                const datos = await respuesta.json();
+                if (!respuesta.ok) {
+                    mensajeError.textContent = "❌ " + (datos.mensaje || "No se pudo actualizar");
+                    return;
+                }
+                cargarCupones();
+            } catch (error) {
+                mensajeError.textContent = "❌ Error de red: " + error.message;
+            }
+        }
+
+        async function eliminarCupon(id) {
+            if (!confirm("⚠️ ¿Seguro que quieres eliminar este cupón?")) return;
+            try {
+                const respuesta = await fetch(`${API_BASE}/cupones/${id}`, {
+                    method: "DELETE",
+                    headers: headerAutorizacion()
+                });
+                const datos = await respuesta.json().catch(() => ({}));
+                if (!respuesta.ok) {
+                    alert("❌ " + (datos.mensaje || "No se pudo eliminar"));
+                    return;
+                }
+                cargarCupones();
+            } catch (error) {
+                alert("❌ Error de red: " + error.message);
             }
         }
 

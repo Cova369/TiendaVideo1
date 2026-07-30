@@ -204,12 +204,57 @@
             font-size: 14px;
             margin-top: 10px;
         }
+
+        .filtros {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .filtros select {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: #202024;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .filtros button {
+            width: auto;
+            background: #8257e5;
+            padding: 10px 16px;
+        }
+
+        .filtros button:hover {
+            background: #9466ff;
+        }
+
+        .btn-eliminar-orden {
+            background: #f75a68;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .btn-eliminar-orden:hover {
+            background: #d94552;
+        }
     </style>
 </head>
 
 <body>
 
     <h1>🧾 Órdenes</h1>
+
+    <div class="filtros">
+        <select id="selectEstadoOrden">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="completado">Completado</option>
+            <option value="cancelado">Cancelado</option>
+        </select>
+        <button type="button" onclick="cargarOrdenes()">🔍 Filtrar</button>
+    </div>
 
     <div class="layout">
         <div class="lista-ordenes" id="listaOrdenes">
@@ -248,7 +293,8 @@
             }
 
             try {
-                const respuesta = await fetch(`${API_BASE}/ordenes`, {
+                const estado = document.getElementById("selectEstadoOrden").value;
+                const respuesta = await fetch(`${API_BASE}/ordenes?estado=${estado}`, {
                     headers: headerAutorizacion()
                 });
                 const ordenes = await respuesta.json();
@@ -259,7 +305,7 @@
                 }
 
                 if (ordenes.length === 0) {
-                    contenedor.innerHTML = "<p>Todavía no hay órdenes registradas.</p>";
+                    contenedor.innerHTML = "<p>No se encontraron órdenes con ese filtro.</p>";
                     return;
                 }
 
@@ -279,6 +325,7 @@
               </select>
               <button onclick="cambiarEstado('${orden._id}')">Actualizar estado</button>
             </div>
+            <button type="button" class="btn-eliminar-orden" onclick="eliminarOrden('${orden._id}')">🗑️ Eliminar orden</button>
           ` : "";
 
                     return `
@@ -295,6 +342,26 @@
                 }).join("");
             } catch (error) {
                 contenedor.innerHTML = `<p style="color:#f75a68;">❌ Error al conectar: ${error.message}</p>`;
+            }
+        }
+
+        // Solo el admin puede borrar una orden por completo (uso: limpieza).
+        // Para el flujo normal, lo correcto es cambiar el estado a "cancelado".
+        async function eliminarOrden(ordenId) {
+            if (!confirm("⚠️ ¿Seguro que quieres eliminar esta orden por completo? Esta acción no se puede deshacer.")) return;
+            try {
+                const respuesta = await fetch(`${API_BASE}/ordenes/${ordenId}`, {
+                    method: "DELETE",
+                    headers: headerAutorizacion()
+                });
+                const datos = await respuesta.json().catch(() => ({}));
+                if (!respuesta.ok) {
+                    alert("❌ " + (datos.mensaje || "No se pudo eliminar"));
+                    return;
+                }
+                cargarOrdenes();
+            } catch (error) {
+                alert("❌ Error de red: " + error.message);
             }
         }
 

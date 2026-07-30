@@ -6,9 +6,13 @@ const { verificarToken, verificarRol } = require("../middlewares/auth");
 
 // GET — cualquier usuario logueado puede ver órdenes.
 // El cliente ve solo LAS SUYAS; el admin ve TODAS (para poder administrarlas).
+// Soporta ?estado=pendiente|completado|cancelado
 router.get("/", verificarToken, async(req, res, next) => {
     try {
         const filtro = req.usuario.rol === "admin" ? {} : { "usuario.id": req.usuario.id };
+        if (req.query.estado) {
+            filtro.estado = req.query.estado;
+        }
         const ordenes = await Orden.find(filtro).sort({ createdAt: -1 });
         res.json(ordenes);
     } catch (error) {
@@ -88,6 +92,22 @@ router.put("/:id/estado", verificarToken, verificarRol("admin"), async(req, res,
             return res.status(404).json({ mensaje: "No se encontró la orden" });
         }
         res.json({ mensaje: "Estado de la orden actualizado", orden: ordenAct });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// DELETE — SOLO el administrador puede borrar una orden por completo.
+// En el día a día lo normal es CANCELAR una orden (PUT /:id/estado), no
+// borrarla — esto es para que el admin pueda limpiar registros de prueba
+// o duplicados sin dejar basura en la colección.
+router.delete("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
+    try {
+        const ordenElim = await Orden.findByIdAndDelete(req.params.id);
+        if (!ordenElim) {
+            return res.status(404).json({ mensaje: "No se encontró la orden a eliminar" });
+        }
+        res.json({ mensaje: "Orden eliminada correctamente" });
     } catch (error) {
         next(error);
     }

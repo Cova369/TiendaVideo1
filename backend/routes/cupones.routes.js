@@ -4,9 +4,18 @@ const Cupon = require("../models/Cupon");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
 
 // GET — cualquiera puede ver los cupones (por ejemplo, para aplicarlos en el carrito)
+// Soporta ?buscar=<texto del código> y ?activo=true|false
 router.get("/", async(req, res, next) => {
     try {
-        const cupones = await Cupon.find();
+        const { buscar, activo } = req.query;
+        let query = {};
+        if (buscar) {
+            query.codigo = { $regex: buscar, $options: "i" };
+        }
+        if (activo !== undefined) {
+            query.activo = activo === "true";
+        }
+        const cupones = await Cupon.find(query);
         res.json(cupones);
     } catch (error) {
         next(error);

@@ -75,6 +75,26 @@
             font-size: 14px;
         }
 
+        .acciones-categoria {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .acciones-categoria button {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+
+        .btn-eliminar {
+            background: #f75a68 !important;
+        }
+
+        .btn-eliminar:hover {
+            background: #d94552 !important;
+        }
+
         .form-container {
             width: 340px;
             background: #202024;
@@ -154,11 +174,18 @@
 
     <script src="js/sesion.js"></script>
     <script>
+        // Guardamos la última lista cargada para no tener que pasar texto con
+        // comillas/acentos dentro de atributos onclick (frágil y propenso a errores)
+        let categoriasCache = [];
+
         async function cargarCategorias() {
             const contenedor = document.getElementById("listaCategorias");
+            const sesion = obtenerSesion();
+            const esAdmin = sesion && sesion.usuario.rol === "admin";
             try {
                 const respuesta = await fetch(`${API_BASE}/categorias`);
                 const categorias = await respuesta.json();
+                categoriasCache = categorias;
 
                 if (categorias.length === 0) {
                     contenedor.innerHTML = "<p>Todavía no hay categorías registradas.</p>";
@@ -166,13 +193,107 @@
                 }
 
                 contenedor.innerHTML = categorias.map(categoria => `
-          <div class="tarjeta-categoria">
+          <div class="tarjeta-categoria" id="categoria-${categoria._id}">
             <h3>${categoria.nombre}</h3>
             <p>${categoria.descripcion}</p>
+            ${esAdmin ? `
+            <div class="acciones-categoria">
+              <button type="button" onclick="activarEdicionCategoria('${categoria._id}')">✏️ Editar</button>
+              <button type="button" class="btn-eliminar" onclick="eliminarCategoria('${categoria._id}')">🗑️ Eliminar</button>
+            </div>` : ""}
           </div>
         `).join("");
             } catch (error) {
                 contenedor.innerHTML = `<p style="color:#f75a68;">❌ Error al conectar: ${error.message}</p>`;
+            }
+        }
+
+        // Cambia una tarjeta a modo edición, usando los datos ya cargados en cache
+        function activarEdicionCategoria(id) {
+            const categoria = categoriasCache.find(c => c._id === id);
+            if (!categoria) return;
+            const tarjeta = document.getElementById(`categoria-${id}`);
+            const nombreInput = document.createElement("input");
+            nombreInput.type = "text";
+            nombreInput.id = `editNombre-${id}`;
+            nombreInput.value = categoria.nombre;
+
+            const descripcionInput = document.createElement("textarea");
+            descripcionInput.id = `editDescripcion-${id}`;
+            descripcionInput.rows = 2;
+            descripcionInput.value = categoria.descripcion;
+
+            tarjeta.innerHTML = "";
+            const campoNombre = document.createElement("div");
+            campoNombre.className = "campo";
+            campoNombre.innerHTML = "<label>Nombre:</label>";
+            campoNombre.appendChild(nombreInput);
+
+            const campoDescripcion = document.createElement("div");
+            campoDescripcion.className = "campo";
+            campoDescripcion.innerHTML = "<label>Descripción:</label>";
+            campoDescripcion.appendChild(descripcionInput);
+
+            const acciones = document.createElement("div");
+            acciones.className = "acciones-categoria";
+            const btnGuardar = document.createElement("button");
+            btnGuardar.type = "button";
+            btnGuardar.textContent = "💾 Guardar";
+            btnGuardar.onclick = () => guardarEdicionCategoria(id);
+            const btnCancelar = document.createElement("button");
+            btnCancelar.type = "button";
+            btnCancelar.style.background = "#29292e";
+            btnCancelar.textContent = "Cancelar";
+            btnCancelar.onclick = () => cargarCategorias();
+            acciones.appendChild(btnGuardar);
+            acciones.appendChild(btnCancelar);
+
+            const mensajeError = document.createElement("div");
+            mensajeError.id = `mensajeErrorEdit-${id}`;
+            mensajeError.className = "mensaje-error";
+
+            tarjeta.appendChild(campoNombre);
+            tarjeta.appendChild(campoDescripcion);
+            tarjeta.appendChild(acciones);
+            tarjeta.appendChild(mensajeError);
+        }
+
+        async function guardarEdicionCategoria(id) {
+            const nombre = document.getElementById(`editNombre-${id}`).value;
+            const descripcion = document.getElementById(`editDescripcion-${id}`).value;
+            const mensajeError = document.getElementById(`mensajeErrorEdit-${id}`);
+            try {
+                const respuesta = await fetch(`${API_BASE}/categorias/${id}`, {
+                    method: "PUT",
+                    headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
+                    body: JSON.stringify({ nombre, descripcion })
+                });
+                const datos = await respuesta.json();
+                if (!respuesta.ok) {
+                    mensajeError.textContent = "❌ " + (datos.mensaje || "No se pudo actualizar");
+                    return;
+                }
+                cargarCategorias();
+            } catch (error) {
+                mensajeError.textContent = "❌ Error de red: " + error.message;
+            }
+        }
+
+        async function eliminarCategoria(id) {
+            if (!confirm("⚠️ ¿Seguro que quieres eliminar esta categoría?")) return;
+            try {
+                const respuesta = await fetch(`${API_BASE}/categorias/${id}`, {
+                    method: "DELETE",
+                    headers: headerAutorizacion()
+                });
+                const datos = await respuesta.json().catch(() => ({}));
+                if (!respuesta.ok) {
+                    alert("❌ " + (datos.mensaje || "No se pudo eliminar"));
+                    return;
+                }
+                cargarCategorias();
+            } catch (error) {
+                alert("❌ Error de red: " + error.message);
             }
         }
 
