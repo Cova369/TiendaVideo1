@@ -5,7 +5,7 @@
 // de navegación con enlaces distintos según si hay sesión o no.
 // ============================================================
 
-const API_BASE = "https://tienda-video1-ojcs.vercel.app/api";
+const API_BASE = "https://tienda-video1.vercel.app/api";
 
 // Lee lo que haya guardado en el navegador. Regresa null si no hay
 // sesión activa (nunca truena aunque falte algo).
