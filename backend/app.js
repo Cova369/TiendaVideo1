@@ -45,12 +45,7 @@ app.use("/api/ordenes", require("./routes/ordenes.routes"));
 app.use("/api/resenas", require("./routes/resenas.routes"));
 app.use("/api/cupones", require("./routes/cupones.routes"));
 
-// Inicialización del servicio en entorno local
-if (process.env.NODE_ENV !== "production") {
-    app.listen(PORT, () => {
-        console.log(`📡 Servidor de videojuegos activo en el puerto ${PORT}`);
-    });
-}
+
 
 module.exports = app;
 // Versión limpia estable sin login
