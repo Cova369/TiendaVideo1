@@ -69,9 +69,9 @@ router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) =>
 
 router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
-        const { titulo, descripcion, precio, stock, plataformas, imagenUrl, desarrolador, categoria } = req.body;
+        const { titulo, descripcion, precio, stock, plataformas, imagenUrl, desarrollador, categoria } = req.body;
         //validacion
-        if (!titulo || !descripcion || precio === undefined || stock === undefined || !plataformas || !imagenUrl || !desarrolador) {
+        if (!titulo || !descripcion || precio === undefined || stock === undefined || !plataformas || !imagenUrl || !desarrollador) {
             return res.status(400).json({ mensaje: "Faltan datos para actualizar" });
         }
         const videojuegoAct = await Videojuego.findByIdAndUpdate(
