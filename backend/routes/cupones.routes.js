@@ -12,7 +12,7 @@ router.get("/", async(req, res, next) => {
         if (buscar) {
             query.codigo = { $regex: buscar, $options: "i" };
         }
-        if (activo !== undefined) {
+        if (activo === "true" || activo === "false") {
             query.activo = activo === "true";
         }
         const cupones = await Cupon.find(query);
