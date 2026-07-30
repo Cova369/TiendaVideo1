@@ -79,7 +79,7 @@
             border-radius: 5px;
             font-size: 14px;
         }
-        
+
         .nav-principal {
             display: flex;
             align-items: center;
@@ -93,18 +93,18 @@
             box-sizing: border-box;
             border-bottom: 1px solid #29292e;
         }
-        
+
         .nav-link {
             color: #a8a8b3;
             text-decoration: none;
             font-size: 14px;
         }
-        
+
         .nav-link:hover,
         .nav-link.activo {
             color: #fff;
         }
-        
+
         .nav-usuario {
             margin-left: auto;
             color: #04d361;
@@ -178,7 +178,7 @@
                 const respuesta = await fetch(CLOUDINARY_URL, {
                     method: "POST",
                     body: formData // Nota: NO se manda "Content-Type" a mano,
-                        // el navegador lo pone solo con el boundary correcto
+                                    // el navegador lo pone solo con el boundary correcto
                 });
                 const datos = await respuesta.json();
 
