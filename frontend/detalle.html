@@ -245,11 +245,15 @@
 
             try {
                 const respuesta = await fetch(`${API_URL}/${juegoId}`, {
-                    method: "DELETE"
+                    method: "DELETE",
+                    headers: headerAutorizacion()
                 });
                 if (respuesta.ok) {
                     alert("🗑️ Videojuego borrado correctamente.");
                     window.location.href = "index.html";
+                } else {
+                    const datosError = await respuesta.json().catch(() => ({}));
+                    alert("❌ " + (datosError.mensaje || "Error al intentar eliminar."));
                 }
             } catch (error) {
                 alert("Error al intentar eliminar.");

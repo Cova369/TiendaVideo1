@@ -222,7 +222,8 @@
                 const respuesta = await fetch(API_URL, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        ...headerAutorizacion()
                     },
                     body: JSON.stringify(datosJuego)
                 });
@@ -231,7 +232,8 @@
                     alert("🎮 ¡Videojuego registrado con éxito!");
                     window.location.href = "index.html"; // Redirección automática al catálogo
                 } else {
-                    alert("❌ Error al guardar datos en Atlas");
+                    const datosError = await respuesta.json().catch(() => ({}));
+                    alert("❌ " + (datosError.mensaje || "Error al guardar datos en Atlas"));
                 }
             } catch (error) {
                 alert("❌ Error de red: " + error.message);

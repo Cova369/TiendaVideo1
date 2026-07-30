@@ -238,15 +238,19 @@
                 const respuesta = await fetch(`${API_URL}/${juegoId}`, {
                     method: "PUT",
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        ...headerAutorizacion()
                     },
                     body: JSON.stringify(datosActualizados)
                 });
 
-                if (respuesta.ok) {
-                    alert("🔄 ¡Registro actualizado correctamente en Atlas!");
-                    window.location.href = `detalle.html?id=${juegoId}`; // Te regresa a ver el detalle actualizado
+                if (!respuesta.ok) {
+                    const datosError = await respuesta.json().catch(() => ({}));
+                    throw new Error(datosError.mensaje || `Error ${respuesta.status} al actualizar`);
                 }
+
+                alert("🔄 ¡Registro actualizado correctamente en Atlas!");
+                window.location.href = `detalle.html?id=${juegoId}`; // Te regresa a ver el detalle actualizado
             } catch (error) {
                 alert("Error al conectar: " + error.message);
             }
