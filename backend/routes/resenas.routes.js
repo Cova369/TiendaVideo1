@@ -3,8 +3,7 @@ const router = express.Router();
 const Resena = require("../models/Resena");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
 
-// GET — cualquiera puede ver las reseñas de un videojuego (público, como en
-// cualquier tienda). Filtro opcional por videojuegoId.
+//get para ver ls reseñas de un juego
 router.get("/", async(req, res, next) => {
     try {
         const { videojuegoId } = req.query;
@@ -16,10 +15,7 @@ router.get("/", async(req, res, next) => {
         next(error);
     }
 });
-
-// POST — SOLO un cliente autenticado puede publicar una reseña.
-// El usuario que la firma sale del token, no del body (para que nadie
-// pueda publicar una reseña a nombre de alguien más).
+//post para que un cliente si pueda crear una reseña
 router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) => {
     try {
         const { videojuegoId, calificacion, comentario } = req.body;
@@ -43,7 +39,7 @@ router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) 
     }
 });
 
-// PUT /:id — el cliente puede actualizar SOLO su propia reseña.
+// put /:id  un cliente puede actualizar solo su propia reseña.
 router.put("/:id", verificarToken, verificarRol("cliente"), async(req, res, next) => {
     try {
         const { calificacion, comentario } = req.body;
@@ -53,8 +49,7 @@ router.put("/:id", verificarToken, verificarRol("cliente"), async(req, res, next
             return res.status(404).json({ mensaje: "Reseña no encontrada" });
         }
 
-        // Comparamos el dueño real de la reseña contra quien está pidiendo
-        // el cambio (dato que viene del token, no del body — no se puede falsificar)
+        //comparacion de edicion entre usuarios
         if (String(resenaExistente.usuario.id) !== String(req.usuario.id)) {
             return res.status(403).json({ mensaje: "No puedes editar la reseña de otro usuario" });
         }

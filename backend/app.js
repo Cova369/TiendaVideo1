@@ -48,4 +48,3 @@ app.use("/api/cupones", require("./routes/cupones.routes"));
 
 
 module.exports = app;
-// Versión limpia estable sin login

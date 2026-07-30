@@ -17,7 +17,7 @@ router.get("/", async(req, res, next, ) => {
     }
 });
 
-//post creacion de documento — SOLO el administrador puede crear categorías
+//post creacion de documento solo el admin puede
 router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { nombre, descripcion } = req.body;
@@ -33,7 +33,7 @@ router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) =>
     }
 })
 
-//put actualizacion de documento — SOLO admin
+//put actualizacion de documento solo admin puede
 router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { nombre, descripcion } = req.body;
@@ -55,7 +55,7 @@ router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) 
 
 });
 
-//delete eliminacion de un documento — SOLO admin
+//delete eliminacion de un documento solo admin puede
 router.delete("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const categoriaElim = await Categoria.findByIdAndDelete(req.params.id);

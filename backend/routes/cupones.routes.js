@@ -2,9 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Cupon = require("../models/Cupon");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
-
-// GET — cualquiera puede ver los cupones (por ejemplo, para aplicarlos en el carrito)
-// Soporta ?buscar=<texto del código> y ?activo=true|false
+//get para los cupones
 router.get("/", async(req, res, next) => {
     try {
         const { buscar, activo } = req.query;
@@ -21,10 +19,7 @@ router.get("/", async(req, res, next) => {
         next(error);
     }
 });
-
-// POST — SOLO el administrador puede crear cupones.
-// Los nombres de campos aquí deben coincidir EXACTAMENTE con el modelo
-// Cupon (codigo, porcentajeDescuento, activo, fechaExpiracion).
+//post solo el admin puede
 router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { codigo, porcentajeDescuento, activo, fechaExpiracion } = req.body;
@@ -43,7 +38,7 @@ router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) =>
     }
 });
 
-// PUT — SOLO admin puede modificar un cupón (ej. desactivarlo)
+// put solo el admin puede 
 router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { codigo, porcentajeDescuento, activo, fechaExpiracion } = req.body;
@@ -59,7 +54,7 @@ router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) 
     }
 });
 
-// DELETE — SOLO admin
+// DELETE solo el admin puede
 router.delete("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const cuponElim = await Cupon.findByIdAndDelete(req.params.id);

@@ -3,7 +3,7 @@ const router = express.Router();
 const Videojuego = require("../models/Videojuego");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
 
-//GET con busqueda dinamica por plataforma, categoria, orden y paginacion
+//GET 
 router.get("/", async(req, res, next) => {
     try {
         const { buscar, plataforma, categoria, ordenar, pagina, limite } = req.query;
@@ -17,9 +17,7 @@ router.get("/", async(req, res, next) => {
         if (categoria) {
             query["categoria.id"] = categoria;
         }
-
-        // Mapa de opciones de orden que el frontend puede pedir por nombre,
-        // en vez de mandar directo la sintaxis de Mongo
+        //Acomodo para la seccion de orden en la consulta 
         const opcionesOrden = {
             precio_asc: { precio: 1 },
             precio_desc: { precio: -1 },
@@ -28,7 +26,7 @@ router.get("/", async(req, res, next) => {
         };
         const criterioOrden = opcionesOrden[ordenar] || { createdAt: -1 };
 
-        // Paginación: por defecto 12 resultados por página
+        // Paginación: por 12 doc este fue recomendado por la ia para mejor entrega del front
         const paginaActual = Math.max(parseInt(pagina) || 1, 1);
         const limitePorPagina = Math.min(parseInt(limite) || 12, 50);
         const saltar = (paginaActual - 1) * limitePorPagina;
@@ -51,8 +49,7 @@ router.get("/", async(req, res, next) => {
     }
 });
 
-//Get por el id — trae tambien el documento completo de la categoria
-//relacionada (no solo el nombre guardado como snapshot)
+//get por el id 
 router.get("/:id", async(req, res, next) => {
     try {
         const videojuego = await Videojuego.findById(req.params.id)
@@ -67,7 +64,7 @@ router.get("/:id", async(req, res, next) => {
     }
 });
 
-//Post — SOLO el administrador puede agregar videojuegos al catálogo
+//Post solo el administrador puede hacer el post
 router.post("/", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const { titulo, descripcion, precio, stock, plataformas, imagenUrl, desarrollador, categoria } = req.body;
@@ -116,8 +113,7 @@ router.put("/:id", verificarToken, verificarRol("admin"), async(req, res, next) 
     }
 });
 
-// DELETE — SOLO el administrador puede eliminar videojuegos. Un cliente
-// jamás debe poder borrar el catálogo, ni siquiera el suyo propio.
+//delete solo el admin puede borrar
 router.delete("/:id", verificarToken, verificarRol("admin"), async(req, res, next) => {
     try {
         const videojuegoElim = await Videojuego.findByIdAndDelete(req.params.id);
