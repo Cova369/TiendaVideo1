@@ -11,6 +11,12 @@ const ordenSchema = new mongoose.Schema({
         cantidad: { type: Number, required: true, min: 1 },
         precioUnitario: { type: Number, required: true }
     }],
+    subtotal: { type: Number, required: true },
+    cupon: {
+        codigo: { type: String },
+        porcentajeDescuento: { type: Number }
+    },
+    descuento: { type: Number, required: true, default: 0 },
     total: { type: Number, required: true },
     estado: { type: String, enum: ["pendiente", "completado", "cancelado"], required: true }
 }, { timestamps: true, versionKey: false });

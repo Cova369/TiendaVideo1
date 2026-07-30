@@ -204,13 +204,13 @@
             font-size: 14px;
             margin-top: 10px;
         }
-
+        
         .filtros {
             margin-bottom: 25px;
             display: flex;
             gap: 12px;
         }
-
+        
         .filtros select {
             padding: 10px;
             border-radius: 5px;
@@ -219,23 +219,23 @@
             color: #fff;
             font-size: 15px;
         }
-
+        
         .filtros button {
             width: auto;
             background: #8257e5;
             padding: 10px 16px;
         }
-
+        
         .filtros button:hover {
             background: #9466ff;
         }
-
+        
         .btn-eliminar-orden {
             background: #f75a68;
             width: 100%;
             margin-top: 8px;
         }
-
+        
         .btn-eliminar-orden:hover {
             background: #d94552;
         }
@@ -269,6 +269,10 @@
         // Guardamos aquí en memoria los items que el cliente va agregando
         // a su nueva orden, antes de mandarla al backend.
         let itemsNuevaOrden = [];
+
+        // Cupón validado contra el backend y actualmente aplicado a la
+        // orden en construcción (o null si no hay ninguno).
+        let cuponActual = null;
 
         // Catálogo real de videojuegos, cargado desde la API. El select del
         // formulario SOLO puede elegir entre estos — nada de texto libre.
@@ -331,6 +335,12 @@
             <button type="button" class="btn-eliminar-orden" onclick="eliminarOrden('${orden._id}')">🗑️ Eliminar orden</button>
           ` : "";
 
+                    const tieneDescuento = orden.cupon && orden.cupon.codigo;
+                    const bloqueDescuento = tieneDescuento ? `
+            <div style="color:#a8a8b3; font-size:13px;">Subtotal: $${orden.subtotal}</div>
+            <div style="color:#04d361; font-size:13px;">🎟️ Cupón "${orden.cupon.codigo}" (-${orden.cupon.porcentajeDescuento}%): -$${orden.descuento}</div>
+          ` : "";
+
                     return `
             <div class="tarjeta-orden">
               <div class="encabezado">
@@ -338,6 +348,7 @@
                 <span class="etiqueta-estado ${orden.estado}">${orden.estado}</span>
               </div>
               <ul>${items}</ul>
+              ${bloqueDescuento}
               <div class="total">Total: $${orden.total}</div>
               ${controlEstado}
             </div>
@@ -394,9 +405,78 @@
         }
 
         function recalcularTotal() {
-            const total = itemsNuevaOrden.reduce((suma, item) => suma + (item.cantidad * item.precioUnitario), 0);
-            const elementoTotal = document.getElementById("totalNuevaOrden");
-            if (elementoTotal) elementoTotal.textContent = "Total: $" + total.toFixed(2);
+            const subtotal = itemsNuevaOrden.reduce((suma, item) => suma + (item.cantidad * item.precioUnitario), 0);
+            const descuento = cuponActual ? subtotal * (cuponActual.porcentajeDescuento / 100) : 0;
+            const total = subtotal - descuento;
+
+            const contenedor = document.getElementById("resumenTotales");
+            if (!contenedor) return;
+
+            let html = `<div style="color:#a8a8b3; font-size:14px; text-align:right;">Subtotal: $${subtotal.toFixed(2)}</div>`;
+            if (cuponActual) {
+                html += `<div style="color:#04d361; font-size:14px; text-align:right;">Cupón "${cuponActual.codigo}" (-${cuponActual.porcentajeDescuento}%): -$${descuento.toFixed(2)}</div>`;
+            }
+            html += `<div class="total-form">Total: $${total.toFixed(2)}</div>`;
+            contenedor.innerHTML = html;
+        }
+
+        // Valida el código de cupón contra la API (código, activo y no
+        // expirado) y, si es válido, lo deja guardado para mandarlo junto
+        // con la orden. El porcentaje real de descuento SIEMPRE lo vuelve
+        // a calcular el backend al crear la orden — esto es solo la
+        // vista previa para el usuario.
+        async function aplicarCupon() {
+            const mensajeCupon = document.getElementById("mensajeCupon");
+            const codigo = document.getElementById("inputCupon").value.trim();
+            mensajeCupon.textContent = "";
+            mensajeCupon.style.color = "#f75a68";
+
+            if (!codigo) {
+                cuponActual = null;
+                recalcularTotal();
+                return;
+            }
+
+            try {
+                const respuesta = await fetch(`${API_BASE}/cupones?buscar=${encodeURIComponent(codigo)}&activo=true`);
+                const cupones = await respuesta.json();
+
+                if (!respuesta.ok || !Array.isArray(cupones)) {
+                    mensajeCupon.textContent = "❌ No se pudo validar el cupón";
+                    cuponActual = null;
+                    recalcularTotal();
+                    return;
+                }
+
+                // Buscamos coincidencia EXACTA de código (buscar= hace match parcial)
+                const cupon = cupones.find(c => c.codigo.toLowerCase() === codigo.toLowerCase());
+
+                if (!cupon) {
+                    mensajeCupon.textContent = "❌ Cupón inválido o inactivo";
+                    cuponActual = null;
+                    recalcularTotal();
+                    return;
+                }
+
+                if (new Date(cupon.fechaExpiracion) < new Date()) {
+                    mensajeCupon.textContent = "❌ Ese cupón ya expiró";
+                    cuponActual = null;
+                    recalcularTotal();
+                    return;
+                }
+
+                cuponActual = {
+                    codigo: cupon.codigo,
+                    porcentajeDescuento: cupon.porcentajeDescuento
+                };
+                mensajeCupon.style.color = "#04d361";
+                mensajeCupon.textContent = `✅ Cupón aplicado: -${cupon.porcentajeDescuento}%`;
+                recalcularTotal();
+            } catch (error) {
+                mensajeCupon.textContent = "❌ Error de red al validar el cupón";
+                cuponActual = null;
+                recalcularTotal();
+            }
         }
 
         function renderListaItemsForm() {
@@ -463,6 +543,7 @@
             // Solo cliente ve el formulario para armar una orden nueva.
             // Cargamos el catálogo real ANTES de dibujar el select.
             itemsNuevaOrden = [];
+            cuponActual = null;
             await cargarCatalogoVideojuegos();
 
             if (catalogoVideojuegos.length === 0) {
@@ -486,12 +567,20 @@
           <button type="button" class="btn-secundario" onclick="agregarItemAlForm()">+ Agregar item a la orden</button>
 
           <div id="listaItemsForm"></div>
-          <div class="total-form" id="totalNuevaOrden">Total: $0.00</div>
+
+          <div class="fila-item">
+            <input type="text" id="inputCupon" placeholder="Código de cupón (opcional)">
+            <button type="button" style="width:auto; background:#8257e5;" onclick="aplicarCupon()">Aplicar</button>
+          </div>
+          <div id="mensajeCupon" style="font-size:13px; margin-bottom:8px;"></div>
+
+          <div id="resumenTotales"></div>
 
           <button type="button" class="btn-guardar" onclick="crearOrden()">✅ Confirmar orden</button>
           <div id="mensajeError" class="mensaje-error"></div>
         </div>
       `;
+            recalcularTotal();
         }
 
         async function crearOrden() {
@@ -511,11 +600,16 @@
                 cantidad: item.cantidad
             }));
 
+            const cuerpo = { items: itemsParaEnviar };
+            if (cuponActual) {
+                cuerpo.codigoCupon = cuponActual.codigo;
+            }
+
             try {
                 const respuesta = await fetch(`${API_BASE}/ordenes`, {
                     method: "POST",
                     headers: Object.assign({ "Content-Type": "application/json" }, headerAutorizacion()),
-                    body: JSON.stringify({ items: itemsParaEnviar })
+                    body: JSON.stringify(cuerpo)
                 });
                 const datos = await respuesta.json();
 
@@ -526,6 +620,7 @@
 
                 alert("✅ Orden creada correctamente");
                 itemsNuevaOrden = [];
+                cuponActual = null;
                 renderPanelLateral();
                 cargarOrdenes();
             } catch (error) {

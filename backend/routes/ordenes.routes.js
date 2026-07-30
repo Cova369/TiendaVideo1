@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Orden = require("../models/Orden");
 const Videojuego = require("../models/Videojuego");
+const Cupon = require("../models/Cupon");
 const { verificarToken, verificarRol } = require("../middlewares/auth");
 
 // GET — cualquier usuario logueado puede ver órdenes.
@@ -27,13 +28,13 @@ router.get("/", verificarToken, async(req, res, next) => {
 // videojuego real en la base de datos y se usa SU título y SU precio actual.
 router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) => {
     try {
-        const { items } = req.body;
+        const { items, codigoCupon } = req.body;
         if (!items || items.length === 0) {
             return res.status(400).json({ mensaje: "Agrega al menos un videojuego a la orden" });
         }
 
         const itemsValidados = [];
-        let total = 0;
+        let subtotal = 0;
 
         for (const item of items) {
             if (!item.videojuegoId || !item.cantidad || item.cantidad < 1) {
@@ -57,8 +58,38 @@ router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) 
                 cantidad: item.cantidad,
                 precioUnitario: videojuego.precio
             });
-            total += videojuego.precio * item.cantidad;
+            subtotal += videojuego.precio * item.cantidad;
         }
+
+        // --- Cupón (opcional) ---
+        // El porcentaje de descuento SIEMPRE sale del cupón real guardado en
+        // la base de datos, nunca de lo que mande el cliente. Así evitamos
+        // que alguien invente un porcentaje mayor mandando la petición
+        // directo por Postman.
+        let cuponAplicado = undefined;
+        let descuento = 0;
+
+        if (codigoCupon) {
+            const cupon = await Cupon.findOne({ codigo: codigoCupon.trim() });
+
+            if (!cupon) {
+                return res.status(404).json({ mensaje: "El cupón ingresado no existe" });
+            }
+            if (!cupon.activo) {
+                return res.status(400).json({ mensaje: "El cupón ya no está activo" });
+            }
+            if (cupon.fechaExpiracion < new Date()) {
+                return res.status(400).json({ mensaje: "El cupón ya expiró" });
+            }
+
+            descuento = Number((subtotal * (cupon.porcentajeDescuento / 100)).toFixed(2));
+            cuponAplicado = {
+                codigo: cupon.codigo,
+                porcentajeDescuento: cupon.porcentajeDescuento
+            };
+        }
+
+        const total = Number((subtotal - descuento).toFixed(2));
 
         const nuevaOrden = new Orden({
             usuario: {
@@ -66,6 +97,9 @@ router.post("/", verificarToken, verificarRol("cliente"), async(req, res, next) 
                 nombre: req.usuario.nombreCompleto
             },
             items: itemsValidados,
+            subtotal,
+            cupon: cuponAplicado,
+            descuento,
             total,
             estado: "pendiente" // toda orden nueva nace en este estado
         });
