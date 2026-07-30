@@ -11,11 +11,13 @@ const usuarioSchema = new mongoose.Schema({
 // Antes de guardar cualquier usuario, si la contraseña es nueva o cambió,
 // la ciframos. "isModified" evita volver a cifrar una contraseña que ya
 // estaba cifrada (por ejemplo si solo se actualiza el nombre).
-usuarioSchema.pre("save", async function(next) {
-    if (!this.isModified("password")) return next();
+// NOTA: al ser una función "async", Mongoose NO le pasa un "next" — el
+// middleware termina solo cuando la función (o su promesa) se resuelve.
+// Llamar a next() aquí tronaría con "next is not a function".
+usuarioSchema.pre("save", async function() {
+    if (!this.isModified("password")) return;
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
 });
 
 // Método de instancia para comparar la contraseña en texto plano (la que
