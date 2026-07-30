@@ -37,7 +37,7 @@ app.get("/", (req, res) => {
     });
 });
 
-// Definición y montaje de Endpoints del sistema
+// Endpoints 
 app.use("/api/videojuegos", require("./routes/videojuegos.routes"));
 app.use("/api/categorias", require("./routes/categorias.routes"));
 app.use("/api/usuarios", require("./routes/usuario.routes"));
